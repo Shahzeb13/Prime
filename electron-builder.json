@@ -1,0 +1,24 @@
+{
+  "appId": "com.shahzeb.primeview",
+  "files": ["dist-electron", "dist-react"],
+  "extraResources": [
+    "dist-electron/preload.cjs",
+    { "from": "src/assets", "to": "assets" },
+    ".env"
+  ],
+  "icon": "./printit-logo.png",
+  "mac": {
+    "target": "dmg"
+  },
+  "linux": {
+    "target": "AppImage",
+    "category": "Utility"
+  },
+  "win": {
+    "target": [ "msi"]
+  },
+  "msi": {
+    "oneClick": false,
+    "perMachine": true
+  }
+}

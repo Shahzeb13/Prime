@@ -1,0 +1,134 @@
+{
+  "formType": "schedule",
+  "positions": [
+    {
+      "category:05 Marla Residential": {
+        "top": 10,
+        "left": 6
+      },
+      "category:7.5 Marla Residential": {
+        "top": 10,
+        "left": 54
+      },
+      "category:10 Marla Residential": {
+        "top": 16,
+        "left": 6
+      },
+      "category:13 Marla Residential": {
+        "top": 16,
+        "left": 54
+      },
+      "category:1 Kanal Residential": {
+        "top": 22,
+        "left": 6
+      },
+      "category:2 Kanal Farm House": {
+        "top": 22,
+        "left": 54
+      },
+      "block_no": {
+        "top": 64.33978487963995,
+        "left": 22.46373629837788
+      },
+      "street_no": {
+        "top": 64.41978405384202,
+        "left": 61.53840957604907
+      },
+      "plot_no": {
+        "top": 66.41795697592798,
+        "left": 18.787941221504674
+      },
+      "plot_size": {
+        "top": 66.5003509641191,
+        "left": 59.36665630882578
+      },
+      "applicant_signature": {
+        "top": 13,
+        "left": 37,
+        "width": 200
+      },
+      "custom_4": {
+        "top": 59.99280007432181,
+        "left": 57.59454907364875
+      },
+      "custom_8": {
+        "top": 59.91034931252322,
+        "left": 87.11495852360237
+      },
+      "custom_9": {
+        "top": 61.90245778108097,
+        "left": 26.848705720230218
+      },
+      "custom_a": {
+        "top": 62.13110058218754,
+        "left": 56.8593112486152
+      },
+      "custom_b": {
+        "top": 62.2170351789917,
+        "left": 87.11495852360235
+      },
+      "custom_e": {
+        "top": 59.76924189814815,
+        "left": 56.985294117647065
+      },
+      "custom_f": {
+        "top": 59.84640239197531,
+        "left": 26.96078431372549
+      }
+    }
+  ],
+  "customFields": [
+    {
+      "id": "custom_8",
+      "label": "Kanal Residential",
+      "formType": "schedule",
+      "pageIndex": 0,
+      "type": "checkbox",
+      "width": "140px"
+    },
+    {
+      "id": "custom_9",
+      "label": "Marla Residential",
+      "formType": "schedule",
+      "pageIndex": 0,
+      "type": "checkbox",
+      "width": "140px"
+    },
+    {
+      "id": "custom_a",
+      "label": "Marla Residential",
+      "formType": "schedule",
+      "pageIndex": 0,
+      "type": "checkbox",
+      "width": "140px"
+    },
+    {
+      "id": "custom_b",
+      "label": "Kanal Farm House",
+      "formType": "schedule",
+      "pageIndex": 0,
+      "type": "checkbox",
+      "width": "140px"
+    },
+    {
+      "id": "custom_e",
+      "label": "Marla Residential",
+      "formType": "schedule",
+      "pageIndex": 0,
+      "type": "checkbox",
+      "width": "140px"
+    },
+    {
+      "id": "custom_f",
+      "label": "Marla Residential",
+      "formType": "schedule",
+      "pageIndex": 0,
+      "type": "checkbox",
+      "width": "140px"
+    }
+  ],
+  "hiddenFields": [
+    "category",
+    "applicant_signature"
+  ]
+}

@@ -1,0 +1,669 @@
+{
+  "formType": "booking",
+  "positions": [
+    {
+      "membership_no": {
+        "top": 16.262345679012338,
+        "left": 19.19607843137255
+      },
+      "date": {
+        "top": 16.41666666666666,
+        "left": 77.68627450980392
+      },
+      "applicant_name": {
+        "top": 19.42592592592592,
+        "left": 20.36764705882353,
+        "width": 510
+      },
+      "applicant_so_do_wo": {
+        "top": 22.41358024691358,
+        "left": 17.357843137254903,
+        "width": 598
+      },
+      "applicant_cnic_nicop": {
+        "top": 13,
+        "left": 37,
+        "width": 200
+      },
+      "applicant_contact_no": {
+        "top": 29.435185185185176,
+        "left": 15.465686274509805
+      },
+      "applicant_email": {
+        "top": 29.41358024691357,
+        "left": 58.41176470588236
+      },
+      "applicant_mailing_address": {
+        "top": 32.50000000000003,
+        "left": 18.25,
+        "width": 604
+      },
+      "nok_name": {
+        "top": 35.74074074074077,
+        "left": 18.039215686274503,
+        "width": 614
+      },
+      "nok_cnic_nicop": {
+        "top": 26.15123456790123,
+        "left": 17.60294117647059
+      },
+      "category:05 Marla Residential": {
+        "top": 10,
+        "left": 6
+      },
+      "category:7.5 Marla Residential": {
+        "top": 10,
+        "left": 54
+      },
+      "category:10 Marla Residential": {
+        "top": 16,
+        "left": 6
+      },
+      "category:13 Marla Residential": {
+        "top": 16,
+        "left": 54
+      },
+      "category:1 Kanal Residential": {
+        "top": 22,
+        "left": 6
+      },
+      "category:2 Kanal Farm House": {
+        "top": 22,
+        "left": 54
+      },
+      "block_no": {
+        "top": 50.2253086419753,
+        "left": 18.985294117647058,
+        "width": 237
+      },
+      "street_no": {
+        "top": 50.30246913580247,
+        "left": 59.338235294117645,
+        "width": 242
+      },
+      "plot_no": {
+        "top": 52.20987654320988,
+        "left": 18.583333333333336,
+        "width": 242
+      },
+      "plot_size": {
+        "top": 52.287037037037045,
+        "left": 59.05882352941177,
+        "width": 248
+      },
+      "down_payment": {
+        "top": 66.94753086419752,
+        "left": 66.32352941176471,
+        "width": 158
+      },
+      "applicant_signature": {
+        "top": 41,
+        "left": 4,
+        "width": 200
+      },
+      "signature_tr_branch": {
+        "top": 41,
+        "left": 37,
+        "width": 200
+      },
+      "signature_general_secretary": {
+        "top": 41,
+        "left": 70,
+        "width": 200
+      },
+      "signature_president": {
+        "top": 48,
+        "left": 4,
+        "width": 200
+      },
+      "custom_c": {
+        "top": 39.691358024691375,
+        "left": 25.151960784313722,
+        "width": 30
+      },
+      "custom_i": {
+        "top": 39.61467978395063,
+        "left": 28.921568627450984,
+        "width": 30
+      },
+      "custom_j": {
+        "top": 39.67616705246916,
+        "left": 32.720588235294116,
+        "width": 30
+      },
+      "custom_k": {
+        "top": 39.599006558641996,
+        "left": 36.39705882352941,
+        "width": 30
+      },
+      "custom_l": {
+        "top": 39.599006558641996,
+        "left": 40.196078431372555,
+        "width": 30
+      },
+      "custom_m": {
+        "top": 39.599006558642,
+        "left": 46.69117647058823,
+        "width": 30
+      },
+      "custom_n": {
+        "top": 39.599006558641996,
+        "left": 50.24509803921569,
+        "width": 30
+      },
+      "custom_o": {
+        "top": 39.599006558642,
+        "left": 53.92156862745098,
+        "width": 30
+      },
+      "custom_p": {
+        "top": 39.599006558642,
+        "left": 57.59803921568627,
+        "width": 30
+      },
+      "custom_q": {
+        "top": 39.67616705246915,
+        "left": 61.15196078431372,
+        "width": 30
+      },
+      "custom_r": {
+        "top": 39.67616705246916,
+        "left": 64.82843137254902,
+        "width": 30
+      },
+      "custom_s": {
+        "top": 39.676167052469154,
+        "left": 68.62745098039217,
+        "width": 30
+      },
+      "custom_t": {
+        "top": 39.75332754629632,
+        "left": 75.49019607843138,
+        "width": 30
+      },
+      "custom_u": {
+        "top": 45.75925925925927,
+        "left": 27.279411764705884
+      },
+      "custom_w": {
+        "top": 47.70085841049382,
+        "left": 27.32843137254902
+      },
+      "custom_x": {
+        "top": 47.46937692901234,
+        "left": 57.35294117647059
+      },
+      "custom_y": {
+        "top": 26.188753858024675,
+        "left": 21.44607843137255,
+        "width": 30
+      },
+      "custom_z": {
+        "top": 26.17308063271604,
+        "left": 25.36764705882353,
+        "width": 30
+      },
+      "custom_10": {
+        "top": 26.17308063271604,
+        "left": 29.16666666666667,
+        "width": 30
+      },
+      "custom_11": {
+        "top": 26.17308063271604,
+        "left": 32.47549019607843,
+        "width": 30
+      },
+      "custom_12": {
+        "top": 26.17308063271604,
+        "left": 38.72549019607843,
+        "width": 30
+      },
+      "custom_13": {
+        "top": 26.2502411265432,
+        "left": 42.647058823529406,
+        "width": 30
+      },
+      "custom_14": {
+        "top": 26.2502411265432,
+        "left": 46.44607843137255,
+        "width": 30
+      },
+      "custom_15": {
+        "top": 26.2502411265432,
+        "left": 49.877450980392155,
+        "width": 30
+      },
+      "custom_16": {
+        "top": 26.2502411265432,
+        "left": 53.30882352941176,
+        "width": 30
+      },
+      "custom_17": {
+        "top": 26.2502411265432,
+        "left": 56.86274509803921,
+        "width": 30
+      },
+      "custom_18": {
+        "top": 26.2502411265432,
+        "left": 60.5392156862745,
+        "width": 30
+      },
+      "custom_19": {
+        "top": 26.2502411265432,
+        "left": 68.01470588235296,
+        "width": 30
+      },
+      "custom_5": {
+        "top": 48.20987654320987,
+        "left": 87.23039215686275
+      },
+      "custom_1a": {
+        "top": 46.01900077160494,
+        "left": 87.25490196078432
+      },
+      "custom_1b": {
+        "top": 45.63319830246914,
+        "left": 57.47549019607844
+      }
+    },
+    {
+      "amount_rs": {
+        "top": 24.209876543209884,
+        "left": 15.642156862745097,
+        "width": 243
+      },
+      "amount_in_words": {
+        "top": 24.59567901234569,
+        "left": 61.26470588235294,
+        "width": 275
+      },
+      "bank_branch_deposited": {
+        "top": 16.185185185185187,
+        "left": 15.09803921568627,
+        "width": 204
+      },
+      "applicant_signature_thumb": {
+        "top": 13,
+        "left": 37,
+        "width": 220
+      },
+      "custom_1c": {
+        "top": 19.089988425925927,
+        "left": 15.196078431372552,
+        "width": 201
+      },
+      "custom_1d": {
+        "top": 21.404803240740744,
+        "left": 15.31862745098039,
+        "width": 200
+      },
+      "custom_1e": {
+        "top": 16.141975308641975,
+        "left": 41.86274509803921,
+        "width": 183
+      },
+      "custom_1f": {
+        "top": 18.549864969135808,
+        "left": 41.911764705882355,
+        "width": 183
+      },
+      "custom_1g": {
+        "top": 21.234809027777782,
+        "left": 41.91176470588235,
+        "width": 182
+      },
+      "custom_1h": {
+        "top": 16.05246913580247,
+        "left": 65.63725490196077,
+        "width": 234
+      },
+      "custom_1i": {
+        "top": 18.549864969135808,
+        "left": 65.68627450980392,
+        "width": 234
+      },
+      "custom_1j": {
+        "top": 21.08048804012346,
+        "left": 65.68627450980392,
+        "width": 234
+      },
+      "custom_1k": {
+        "top": 27.228395061728406,
+        "left": 57.794117647058826,
+        "width": 303
+      }
+    }
+  ],
+  "customFields": [
+    {
+      "id": "custom_5",
+      "label": "Kanal Farm House",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "checkbox",
+      "width": "140px"
+    },
+    {
+      "id": "custom_c",
+      "label": "CNIC/ NICOP#",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_i",
+      "label": "CNIC/ NICOP#",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_j",
+      "label": "CNIC/ NICOP#",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_k",
+      "label": "CNIC/ NICOP#",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_l",
+      "label": "CNIC/ NICOP#",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_m",
+      "label": "CNIC/ NICOP#",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_n",
+      "label": "CNIC/ NICOP#",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_o",
+      "label": "CNIC/ NICOP#",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_p",
+      "label": "CNIC/ NICOP#",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_q",
+      "label": "CNIC/ NICOP#",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_r",
+      "label": "CNIC/ NICOP#",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_s",
+      "label": "CNIC/ NICOP#",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_t",
+      "label": "CNIC/ NICOP#",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_u",
+      "label": "MARLA R",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "checkbox",
+      "width": "140px"
+    },
+    {
+      "id": "custom_w",
+      "label": "MARLA R",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "checkbox",
+      "width": "140px"
+    },
+    {
+      "id": "custom_x",
+      "label": "MARLA R",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "checkbox",
+      "width": "140px"
+    },
+    {
+      "id": "custom_y",
+      "label": "CNIC or NICOP of NOK",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_z",
+      "label": "CNIC or NICOP of NOK",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_10",
+      "label": "CNIC or NICOP of NOK",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_11",
+      "label": "CNIC or NICOP of NOK",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_12",
+      "label": "CNIC or NICOP of NOK",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_13",
+      "label": "CNIC or NICOP of NOK",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_14",
+      "label": "CNIC or NICOP of NOK",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_15",
+      "label": "CNIC or NICOP of NOK",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_16",
+      "label": "CNIC or NICOP of NOK",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_17",
+      "label": "CNIC or NICOP of NOK",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_18",
+      "label": "CNIC or NICOP of NOK",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_19",
+      "label": "CNIC or NICOP of NOK",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "30px"
+    },
+    {
+      "id": "custom_1a",
+      "label": "MARLA R",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "checkbox",
+      "width": "140px"
+    },
+    {
+      "id": "custom_1b",
+      "label": "MARLA R",
+      "formType": "booking",
+      "pageIndex": 0,
+      "type": "checkbox",
+      "width": "140px"
+    },
+    {
+      "id": "custom_1c",
+      "label": "Bank Name & Branch Code",
+      "formType": "booking",
+      "pageIndex": 1,
+      "type": "text",
+      "width": "208px"
+    },
+    {
+      "id": "custom_1d",
+      "label": "Bank Name & Branch Code",
+      "formType": "booking",
+      "pageIndex": 1,
+      "type": "text",
+      "width": "208px"
+    },
+    {
+      "id": "custom_1e",
+      "label": "ACC NO",
+      "formType": "booking",
+      "pageIndex": 1,
+      "type": "text",
+      "width": "140px"
+    },
+    {
+      "id": "custom_1f",
+      "label": "ACC NO",
+      "formType": "booking",
+      "pageIndex": 1,
+      "type": "text",
+      "width": "183px"
+    },
+    {
+      "id": "custom_1g",
+      "label": "ACC NO",
+      "formType": "booking",
+      "pageIndex": 1,
+      "type": "text",
+      "width": "183px"
+    },
+    {
+      "id": "custom_1h",
+      "label": "IBAN NO",
+      "formType": "booking",
+      "pageIndex": 1,
+      "type": "text",
+      "width": "140px"
+    },
+    {
+      "id": "custom_1i",
+      "label": "IBAN NO",
+      "formType": "booking",
+      "pageIndex": 1,
+      "type": "text",
+      "width": "234px"
+    },
+    {
+      "id": "custom_1j",
+      "label": "IBAN NO",
+      "formType": "booking",
+      "pageIndex": 1,
+      "type": "text",
+      "width": "234px"
+    },
+    {
+      "id": "custom_1k",
+      "label": "BANK NAME",
+      "formType": "booking",
+      "pageIndex": 1,
+      "type": "text",
+      "width": "140px"
+    }
+  ],
+  "hiddenFields": [
+    "applicant_signature",
+    "signature_tr_branch",
+    "signature_president",
+    "signature_general_secretary",
+    "category",
+    "applicant_signature_thumb",
+    "applicant_cnic_nicop",
+    "declaration_date"
+  ]
+}

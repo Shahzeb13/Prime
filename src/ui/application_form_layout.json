@@ -1,0 +1,155 @@
+{
+  "formType": "application",
+  "positions": [
+    {
+      "date": {
+        "top": 17.11111111111111,
+        "left": 12.25490196078431
+      },
+      "membership_no": {
+        "top": 20.969135802469136,
+        "left": 20.833333333333343
+      },
+      "block_no": {
+        "top": 27.52777777777778,
+        "left": 16.421568627450974
+      },
+      "street_no": {
+        "top": 27.58333333333333,
+        "left": 43.627450980392155
+      },
+      "plot_no": {
+        "top": 27.660493827160497,
+        "left": 67.0343137254902
+      },
+      "plot_size": {
+        "top": 30.361111111111114,
+        "left": 15.931372549019613
+      },
+      "plot_type": {
+        "top": 30.493827160493826,
+        "left": 43.995098039215684,
+        "width": 106
+      },
+      "total_price": {
+        "top": 30.339506172839503,
+        "left": 69.11764705882354
+      },
+      "payment": {
+        "top": 33.11728395061729,
+        "left": 19.485294117647054
+      },
+      "monthly_installment": {
+        "top": 33.25,
+        "left": 71.32352941176471
+      },
+      "customer_name": {
+        "top": 56.089506172839506,
+        "left": 15.563725490196077
+      },
+      "customer_so_do_wo": {
+        "top": 55.93518518518518,
+        "left": 56.86274509803921
+      },
+      "customer_address": {
+        "top": 44.10802469135802,
+        "left": 18.13725490196079
+      },
+      "customer_cnic": {
+        "top": 58.84567901234568,
+        "left": 17.279411764705888
+      },
+      "customer_contact": {
+        "top": 46.65432098765432,
+        "left": 59.43627450980392
+      },
+      "nok_name": {
+        "top": 41.69444444444444,
+        "left": 14.90686274509804
+      },
+      "nok_so_do_wo": {
+        "top": 41.77160493827161,
+        "left": 57.588235294117645
+      },
+      "nok_cnic": {
+        "top": 46.941358024691354,
+        "left": 16.936274509803923
+      },
+      "nok_relation": {
+        "top": 58.72530864197531,
+        "left": 56.450980392156865
+      },
+      "office_sign": {
+        "top": 48,
+        "left": 37,
+        "width": 120
+      },
+      "project_name": {
+        "top": 68.60185185185185,
+        "left": 19.142156862745097
+      },
+      "installment": {
+        "top": 69.04320987654322,
+        "left": 55.470588235294116
+      },
+      "full_payment": {
+        "top": 69.04320987654322,
+        "left": 71.68137254901963
+      },
+      "others": {
+        "top": 68.96604938271605,
+        "left": 84.33823529411765
+      },
+      "plot_shop_apartment_office": {
+        "top": 71.1820987654321,
+        "left": 29.612745098039216
+      },
+      "office_block": {
+        "top": 71.41358024691358,
+        "left": 58.568627450980394
+      },
+      "remarks": {
+        "top": 74.26851851851852,
+        "left": 18.284313725490193
+      },
+      "secretary_sign": {
+        "top": 69,
+        "left": 4,
+        "width": 150
+      },
+      "custom_g": {
+        "top": 78.58072916666667,
+        "left": 72.05882352941175
+      },
+      "custom_h": {
+        "top": 13.160493827160495,
+        "left": 76.86764705882354,
+        "width": 119,
+        "height": 163
+      }
+    }
+  ],
+  "customFields": [
+    {
+      "id": "custom_g",
+      "label": "BLOCK",
+      "formType": "application",
+      "pageIndex": 0,
+      "type": "text",
+      "width": "140px"
+    },
+    {
+      "id": "custom_h",
+      "label": "Profile",
+      "formType": "application",
+      "pageIndex": 0,
+      "type": "image",
+      "width": "140px"
+    }
+  ],
+  "hiddenFields": [
+    "office_sign",
+    "secretary_sign",
+    "photo"
+  ]
+}
