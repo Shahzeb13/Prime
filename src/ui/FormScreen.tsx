@@ -81,7 +81,35 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
   const [isDesignMode, setIsDesignMode] = useState(false)
   const [image, setImage] = useState<{ key: string; url: string } | null>(null)
   const [opacity, setOpacity] = useState(0.3)
-  const [fitToPage, setFitToPage] = useState(false)
+  const [fitToPage, setFitToPage] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('fitToPageMap')
+        if (saved) {
+          const map = JSON.parse(saved)
+          const key = `${formType}:${pageIndex}`
+          if (typeof map[key] === 'boolean') return map[key]
+        }
+      } catch {
+        // ignore parse error
+      }
+    }
+    return false
+  })
+
+  const handleToggleFitToPage = (checked: boolean) => {
+    setFitToPage(checked)
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('fitToPageMap')
+        const map = saved ? JSON.parse(saved) : {}
+        map[`${formType}:${pageIndex}`] = checked
+        localStorage.setItem('fitToPageMap', JSON.stringify(map))
+      } catch (e) {
+        console.error('Error saving fitToPage setting:', e)
+      }
+    }
+  }
 
   const toggleDesignMode = () => {
     setIsDesignMode((prev) => {
@@ -316,6 +344,22 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
         if (url) setImage({ key: `${formType}:${pageIndex}`, url })
       })
     }
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('fitToPageMap')
+        if (saved) {
+          const map = JSON.parse(saved)
+          const key = `${formType}:${pageIndex}`
+          if (typeof map[key] === 'boolean') {
+            setFitToPage(map[key])
+            return
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+    setFitToPage(false)
   }, [formType, pageIndex])
 
   useEffect(() => {
@@ -419,6 +463,16 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
 
   const handleSaveLayout = async () => {
     const ok = await savePositions()
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('fitToPageMap')
+        const map = saved ? JSON.parse(saved) : {}
+        map[`${formType}:${pageIndex}`] = fitToPage
+        localStorage.setItem('fitToPageMap', JSON.stringify(map))
+      } catch (e) {
+        console.error('Error saving fitToPage setting on Save Layout:', e)
+      }
+    }
     setMsg(ok ? 'Layout saved.' : 'Could not save layout.')
   }
 
@@ -433,6 +487,7 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
       positions: positionsRef.current?.[formType] ?? [],
       customFields: customFields.filter((c) => c.formType === formType),
       hiddenFields: hiddenFields[formType] ?? [],
+      fitToPage,
     }
     const defaultFilename = `${formType}_form_layout.json`
     const ok = await window.electronAPI.exportLayout(JSON.stringify(layout, null, 2), defaultFilename)
@@ -458,6 +513,7 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
       positions?: PositionsMap[FormType]
       customFields?: CustomFieldDef[]
       hiddenFields?: string[]
+      fitToPage?: boolean
     } | null
     if (!raw) {
       setMsg('Layout import was cancelled or failed.')
@@ -500,6 +556,9 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
         setPositions(mergedPositions)
         setCustomFields(mergedCustomFields)
         setHiddenFields(mergedHiddenFields)
+        if (typeof raw.fitToPage === 'boolean') {
+          handleToggleFitToPage(raw.fitToPage)
+        }
         setMsg(`${formType} layout imported and applied successfully!`)
       } else {
         setMsg('Could not save the imported layout files.')
@@ -1456,7 +1515,7 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
               <input
                 type="checkbox"
                 checked={fitToPage}
-                onChange={(e) => setFitToPage(e.target.checked)}
+                onChange={(e) => handleToggleFitToPage(e.target.checked)}
               />
               Fit image
             </label>
