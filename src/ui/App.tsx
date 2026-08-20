@@ -2,6 +2,7 @@ import { useState } from 'react'
 import CategoryScreen from './CategoryScreen'
 import FormScreen from './FormScreen'
 import RecordsScreen from './RecordsScreen'
+import TitleBar from './TitleBar'
 import { type FormType } from './formTypes'
 import {
   initialFormData,
@@ -35,6 +36,7 @@ function App() {
 
   return (
     <>
+      <TitleBar />
       {view === 'category' && (
         <CategoryScreen onSelect={selectCategory} onRecords={() => setView('records')} />
       )}

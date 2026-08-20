@@ -6,7 +6,7 @@
     { "from": "src/assets", "to": "assets" },
     ".env"
   ],
-  "icon": "./printit-logo.png",
+  "icon": "./Primeveiwlogo.png",
   "mac": {
     "target": "dmg"
   },

@@ -19,6 +19,9 @@ interface ElectronAPI {
   saveSubmission: (formType: string, payload: unknown) => Promise<number | null>
   loadSubmissions: (formType: string) => Promise<unknown[]>
   deleteSubmission: (id: number) => Promise<boolean>
+  minimizeWindow: () => Promise<void>
+  maximizeWindow: () => Promise<void>
+  closeWindow: () => Promise<void>
 }
 
 declare global {

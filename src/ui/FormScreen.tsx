@@ -78,9 +78,20 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
   const [positions, setPositions] = useState<PositionsMap | null>(null)
   const [calibrate, setCalibrate] = useState(false)
   const [showPanel, setShowPanel] = useState(false)
+  const [isDesignMode, setIsDesignMode] = useState(false)
   const [image, setImage] = useState<{ key: string; url: string } | null>(null)
   const [opacity, setOpacity] = useState(0.3)
   const [fitToPage, setFitToPage] = useState(false)
+
+  const toggleDesignMode = () => {
+    setIsDesignMode((prev) => {
+      if (prev) {
+        setCalibrate(false)
+        setShowPanel(false)
+      }
+      return !prev
+    })
+  }
   const [pageIndex, setPageIndex] = useState(0)
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const [msg, setMsg] = useState('')
@@ -350,7 +361,6 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calibrate, selectedKey, formType, pageIndex])
 
   const updatePosition = (fieldKey: string, p: FieldPosition) => {
@@ -1080,6 +1090,28 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
     setMsg('Filled all fields with demo data.')
   }
 
+  const handleClearData = () => {
+    FORM_FIELDS[formType].forEach((page) => {
+      page.forEach((meta) => {
+        if (meta.type === 'category') {
+          onChange('category', '')
+        } else if (meta.type === 'checkbox') {
+          onChange(meta.id, false)
+        } else {
+          onChange(meta.id, '')
+        }
+      })
+    })
+    customFields
+      .filter((c) => c.formType === formType)
+      .forEach((c) => {
+        if (c.type === 'checkbox') onChange(c.id, false)
+        else onChange(c.id, '')
+      })
+    setMsg('Cleared all form input fields.')
+  }
+  void [handleFillDummy, handleClearData]
+
   const openPreview = async () => {
     if (!window.electronAPI?.loadReferenceImage) return
     const total = FORM_FIELDS[formType].length
@@ -1172,11 +1204,11 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
       const group = sep > 0 ? key.slice(0, sep) : 'category'
       const opt = sep > 0 ? key.slice(sep + 1) : ''
       const selected = data[group]
-      return selected === opt ? <span className="tick-box">X</span> : null
+      return selected === opt ? <span className="tick-box">✔</span> : null
     }
     const v = data[key]
     if (typeof v === 'boolean') {
-      return v ? <span className="tick-box">X</span> : null
+      return v ? <span className="tick-box">✔</span> : null
     }
     const s = typeof v === 'string' ? v : ''
     return s ? <span className="print-value">{s}</span> : null
@@ -1240,6 +1272,83 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
     )
   }
 
+  const focusNextInput = (currentInput: HTMLInputElement) => {
+    const rawInputs = Array.from(
+      pageRef.current?.querySelectorAll<HTMLInputElement>(
+        'input[type="text"], input[type="date"], input[type="checkbox"], input[type="radio"]'
+      ) ?? []
+    ).filter((input) => input.offsetParent !== null && !input.disabled)
+
+    // Sort inputs in visual reading order (top-to-bottom, left-to-right)
+    const inputs = rawInputs.sort((a, b) => {
+      const rectA = a.getBoundingClientRect()
+      const rectB = b.getBoundingClientRect()
+      if (Math.abs(rectA.top - rectB.top) < 12) {
+        return rectA.left - rectB.left
+      }
+      return rectA.top - rectB.top
+    })
+
+    const currentIndex = inputs.indexOf(currentInput)
+    if (currentIndex !== -1 && currentIndex < inputs.length - 1) {
+      const nextInput = inputs[currentIndex + 1]
+      nextInput.focus()
+      if (nextInput.type === 'text' || nextInput.type === 'date') {
+        nextInput.select()
+      }
+    }
+  }
+
+  const focusPrevInput = (currentInput: HTMLInputElement) => {
+    const rawInputs = Array.from(
+      pageRef.current?.querySelectorAll<HTMLInputElement>(
+        'input[type="text"], input[type="date"], input[type="checkbox"], input[type="radio"]'
+      ) ?? []
+    ).filter((input) => input.offsetParent !== null && !input.disabled)
+
+    const inputs = rawInputs.sort((a, b) => {
+      const rectA = a.getBoundingClientRect()
+      const rectB = b.getBoundingClientRect()
+      if (Math.abs(rectA.top - rectB.top) < 12) {
+        return rectA.left - rectB.left
+      }
+      return rectA.top - rectB.top
+    })
+
+    const currentIndex = inputs.indexOf(currentInput)
+    if (currentIndex > 0) {
+      const prevInput = inputs[currentIndex - 1]
+      prevInput.focus()
+      if (prevInput.type === 'text' || prevInput.type === 'date') {
+        prevInput.select()
+      }
+    }
+  }
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, key?: string) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      focusNextInput(e.currentTarget)
+    } else if (e.key === 'Backspace') {
+      const input = e.currentTarget
+      const isSmallBox = input.offsetWidth <= 40
+      if (input.value === '' || isSmallBox) {
+        if (key && input.value !== '') {
+          onChange(key, '')
+        }
+        focusPrevInput(input)
+      }
+    }
+  }
+
+  const handleInputChange = (key: string, val: string, currentInput: HTMLInputElement) => {
+    onChange(key, val)
+    const isSmallBox = currentInput.offsetWidth <= 40
+    if (isSmallBox && val.length >= 1) {
+      focusNextInput(currentInput)
+    }
+  }
+
   const renderControl = (key: string, widthPx?: number): ReactNode => {
     const meta = metaForKey(pageMetaList, key)
     if (meta.type === 'category' || meta.type === 'radio') {
@@ -1254,8 +1363,9 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
             name={`${group}-${formType}-${pageIndex}`}
             checked={selected === opt}
             onChange={() => onChange(group, opt)}
+            onKeyDown={(e) => handleInputKeyDown(e, group)}
           />
-          <span className="field-label">{opt}</span>
+          <span className="field-option-label">{opt}</span>
         </label>
       )
     }
@@ -1292,8 +1402,9 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
             type="checkbox"
             checked={data[key] === true}
             onChange={(e) => onChange(key, e.target.checked)}
+            onKeyDown={(e) => handleInputKeyDown(e, key)}
           />
-          <span className="field-label">{meta.label}</span>
+          <span className="field-option-label">{meta.label}</span>
         </label>
       )
     }
@@ -1302,8 +1413,10 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
         <span className="field-label">{meta.label}</span>
         <input
           type={meta.type === 'date' ? 'date' : 'text'}
+          placeholder={meta.label}
           value={typeof data[key] === 'string' ? (data[key] as string) : ''}
-          onChange={(e) => onChange(key, e.target.value)}
+          onChange={(e) => handleInputChange(key, e.target.value, e.target)}
+          onKeyDown={(e) => handleInputKeyDown(e, key)}
           style={{ width: widthPx != null ? `${widthPx}px` : meta.width }}
         />
       </label>
@@ -1317,173 +1430,185 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
           ← Back
         </button>
         <h2>{FORM_TYPE_LABELS[formType]}</h2>
-        <label className="calibrate-toggle">
-          <input
-            type="checkbox"
-            checked={calibrate}
-            onChange={(e) => setCalibrate(e.target.checked)}
-          />
-          Calibrate
-        </label>
-        <label className="opacity-control">
-          Image
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.05}
-            value={opacity}
-            onChange={(e) => setOpacity(Number(e.target.value))}
-          />
-        </label>
-        <label className="calibrate-toggle" title="Stretch the image to fill the paper edge to edge so positions map accurately">
-          <input
-            type="checkbox"
-            checked={fitToPage}
-            onChange={(e) => setFitToPage(e.target.checked)}
-          />
-          Fit image
-        </label>
-        <div className="page-size-selector">
-          <select
-            value={isCustomSize ? 'Custom' : (PAGE_PRESETS.find(p => p.width === pageSize.width && p.height === pageSize.height)?.label ?? 'Custom')}
-            onChange={(e) => {
-              if (e.target.value === 'Custom') {
-                setIsCustomSize(true)
-                const wClean = pageSize.width.replace('mm', '').replace('in', '')
-                const hClean = pageSize.height.replace('mm', '').replace('in', '')
-                setCustomWidth(wClean)
-                setCustomHeight(hClean)
-                setCustomUnit(pageSize.width.endsWith('in') ? 'in' : 'mm')
-              } else {
-                const preset = PAGE_PRESETS.find(p => p.label === e.target.value)
-                if (preset) {
-                  setPageSize({ width: preset.width, height: preset.height })
-                  setIsCustomSize(false)
-                  setCustomWidth('')
-                  setCustomHeight('')
-                  setCustomUnit(preset.width.endsWith('in') ? 'in' : 'mm')
-                }
-              }
-            }}
-          >
-            {PAGE_PRESETS.map(p => <option key={p.label} value={p.label}>{p.label}</option>)}
-            <option value="Custom">Custom...</option>
-          </select>
-          {isCustomSize && (
-            <>
+
+        {isDesignMode && (
+          <>
+            <label className="calibrate-toggle">
               <input
-                type="text"
-                placeholder={`Width (${customUnit})`}
-                value={customWidth}
-                onChange={(e) => setCustomWidth(e.target.value)}
-                style={{ width: '80px' }}
-                onBlur={() => {
-                  const w = customWidth ? `${customWidth}${customUnit}` : pageSize.width
-                  const h = customHeight ? `${customHeight}${customUnit}` : pageSize.height
-                  setPageSize({ width: w, height: h })
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const w = `${customWidth || pageSize.width.replace('mm', '').replace('in', '')}${customUnit}`
-                    const h = `${customHeight || pageSize.height.replace('mm', '').replace('in', '')}${customUnit}`
-                    setPageSize({ width: w, height: h })
-                  }
-                }}
+                type="checkbox"
+                checked={calibrate}
+                onChange={(e) => setCalibrate(e.target.checked)}
               />
-              <span>×</span>
+              Calibrate
+            </label>
+            <label className="opacity-control">
+              Image
               <input
-                type="text"
-                placeholder={`Height (${customUnit})`}
-                value={customHeight}
-                onChange={(e) => setCustomHeight(e.target.value)}
-                style={{ width: '80px' }}
-                onBlur={() => {
-                  const w = customWidth ? `${customWidth}${customUnit}` : pageSize.width
-                  const h = customHeight ? `${customHeight}${customUnit}` : pageSize.height
-                  setPageSize({ width: w, height: h })
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const w = `${customWidth || pageSize.width.replace('mm', '').replace('in', '')}${customUnit}`
-                    const h = `${customHeight || pageSize.height.replace('mm', '').replace('in', '')}${customUnit}`
-                    setPageSize({ width: w, height: h })
-                  }
-                }}
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={opacity}
+                onChange={(e) => setOpacity(Number(e.target.value))}
               />
+            </label>
+            <label className="calibrate-toggle" title="Stretch the image to fill the paper edge to edge so positions map accurately">
+              <input
+                type="checkbox"
+                checked={fitToPage}
+                onChange={(e) => setFitToPage(e.target.checked)}
+              />
+              Fit image
+            </label>
+            <div className="page-size-selector">
               <select
-                value={customUnit}
+                value={isCustomSize ? 'Custom' : (PAGE_PRESETS.find(p => p.width === pageSize.width && p.height === pageSize.height)?.label ?? 'Custom')}
                 onChange={(e) => {
-                  const newUnit = e.target.value as 'mm' | 'in'
-                  setCustomUnit(newUnit)
-                  const w = customWidth ? `${customWidth}${newUnit}` : pageSize.width
-                  const h = customHeight ? `${customHeight}${newUnit}` : pageSize.height
-                  setPageSize({ width: w, height: h })
+                  if (e.target.value === 'Custom') {
+                    setIsCustomSize(true)
+                    const wClean = pageSize.width.replace('mm', '').replace('in', '')
+                    const hClean = pageSize.height.replace('mm', '').replace('in', '')
+                    setCustomWidth(wClean)
+                    setCustomHeight(hClean)
+                    setCustomUnit(pageSize.width.endsWith('in') ? 'in' : 'mm')
+                  } else {
+                    const preset = PAGE_PRESETS.find(p => p.label === e.target.value)
+                    if (preset) {
+                      setPageSize({ width: preset.width, height: preset.height })
+                      setIsCustomSize(false)
+                      setCustomWidth('')
+                      setCustomHeight('')
+                      setCustomUnit(preset.width.endsWith('in') ? 'in' : 'mm')
+                    }
+                  }
                 }}
-                style={{ width: '60px', padding: '2px 4px', fontSize: '12px' }}
               >
-                <option value="mm">mm</option>
-                <option value="in">in</option>
+                {PAGE_PRESETS.map(p => <option key={p.label} value={p.label}>{p.label}</option>)}
+                <option value="Custom">Custom...</option>
               </select>
-            </>
-          )}
-        </div>
-        <label className="upload-btn">
-          Upload form image
-          <input type="file" accept="image/*" onChange={handleFile} />
-        </label>
-        <button onClick={() => setShowPanel((s) => !s)}>Fine-tune</button>
-        <button onClick={handleUndo}>Undo</button>
-        <button onClick={handleReset}>Reset</button>
-        <button onClick={() => setAddingField((s) => !s)}>Add field</button>
-        {addingField && (
-          <span className="add-field-inline">
-            <input
-              type="text"
-              placeholder="Field name"
-              value={newFieldName}
-              autoFocus
-              onChange={(e) => setNewFieldName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleAddField()
-                if (e.key === 'Escape') setAddingField(false)
-              }}
-            />
-            <select
-              value={newFieldType}
-              onChange={(e) =>
-                setNewFieldType(e.target.value as 'text' | 'date' | 'checkbox' | 'radio' | 'image')
-              }
-            >
-              <option value="text">Text</option>
-              <option value="date">Date</option>
-              <option value="checkbox">Tick box</option>
-              <option value="radio">Radio (options)</option>
-              <option value="image">Image</option>
-            </select>
-            {newFieldType === 'radio' && (
-              <input
-                type="text"
-                placeholder="Options (comma separated)"
-                value={newFieldOptions}
-                onChange={(e) => setNewFieldOptions(e.target.value)}
-              />
-            )}
-            <button className="primary" onClick={handleAddField}>
-              Add
+              {isCustomSize && (
+                <>
+                  <input
+                    type="text"
+                    placeholder={`Width (${customUnit})`}
+                    value={customWidth}
+                    onChange={(e) => setCustomWidth(e.target.value)}
+                    style={{ width: '80px' }}
+                    onBlur={() => {
+                      const w = customWidth ? `${customWidth}${customUnit}` : pageSize.width
+                      const h = customHeight ? `${customHeight}${customUnit}` : pageSize.height
+                      setPageSize({ width: w, height: h })
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const w = `${customWidth || pageSize.width.replace('mm', '').replace('in', '')}${customUnit}`
+                        const h = `${customHeight || pageSize.height.replace('mm', '').replace('in', '')}${customUnit}`
+                        setPageSize({ width: w, height: h })
+                      }
+                    }}
+                  />
+                  <span>×</span>
+                  <input
+                    type="text"
+                    placeholder={`Height (${customUnit})`}
+                    value={customHeight}
+                    onChange={(e) => setCustomHeight(e.target.value)}
+                    style={{ width: '80px' }}
+                    onBlur={() => {
+                      const w = customWidth ? `${customWidth}${customUnit}` : pageSize.width
+                      const h = customHeight ? `${customHeight}${customUnit}` : pageSize.height
+                      setPageSize({ width: w, height: h })
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const w = `${customWidth || pageSize.width.replace('mm', '').replace('in', '')}${customUnit}`
+                        const h = `${customHeight || pageSize.height.replace('mm', '').replace('in', '')}${customUnit}`
+                        setPageSize({ width: w, height: h })
+                      }
+                    }}
+                  />
+                  <select
+                    value={customUnit}
+                    onChange={(e) => {
+                      const newUnit = e.target.value as 'mm' | 'in'
+                      setCustomUnit(newUnit)
+                      const w = customWidth ? `${customWidth}${newUnit}` : pageSize.width
+                      const h = customHeight ? `${customHeight}${newUnit}` : pageSize.height
+                      setPageSize({ width: w, height: h })
+                    }}
+                    style={{ width: '60px', padding: '2px 4px', fontSize: '12px' }}
+                  >
+                    <option value="mm">mm</option>
+                    <option value="in">in</option>
+                  </select>
+                </>
+              )}
+            </div>
+            <button className="primary" onClick={toggleDesignMode}>
+              Done Design
             </button>
-            <button onClick={() => setAddingField(false)}>Cancel</button>
-          </span>
+            <button onClick={() => setShowPanel((s) => !s)}>Fine-tune</button>
+            <button onClick={handleUndo}>Undo</button>
+            <button onClick={handleReset}>Reset</button>
+            <button onClick={() => setAddingField((s) => !s)}>Add field</button>
+            {addingField && (
+              <span className="add-field-inline">
+                <input
+                  type="text"
+                  placeholder="Field name"
+                  value={newFieldName}
+                  autoFocus
+                  onChange={(e) => setNewFieldName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAddField()
+                    if (e.key === 'Escape') setAddingField(false)
+                  }}
+                />
+                <select
+                  value={newFieldType}
+                  onChange={(e) =>
+                    setNewFieldType(e.target.value as 'text' | 'date' | 'checkbox' | 'radio' | 'image')
+                  }
+                >
+                  <option value="text">Text</option>
+                  <option value="date">Date</option>
+                  <option value="checkbox">Tick box</option>
+                  <option value="radio">Radio (options)</option>
+                  <option value="image">Image</option>
+                </select>
+                {newFieldType === 'radio' && (
+                  <input
+                    type="text"
+                    placeholder="Options (comma separated)"
+                    value={newFieldOptions}
+                    onChange={(e) => setNewFieldOptions(e.target.value)}
+                  />
+                )}
+                <button className="primary" onClick={handleAddField}>
+                  Add
+                </button>
+                <button onClick={() => setAddingField(false)}>Cancel</button>
+              </span>
+            )}
+            <button onClick={handleSaveLayout}>Save layout</button>
+            <button onClick={handleExportLayout}>Export layout</button>
+            <button onClick={handleImportLayout}>Import layout</button>
+          </>
         )}
-        <button onClick={handleSaveLayout}>Save layout</button>
-        <button onClick={handleExportLayout}>Export layout</button>
-        <button onClick={handleImportLayout}>Import layout</button>
-        <button className="demo-fill" onClick={handleFillDummy}>
-          Fill demo data
-        </button>
+
         <button className="primary" onClick={handlePrint}>
           Print
         </button>
+        {isDesignMode ? (
+          <label className="upload-btn">
+            Upload form image
+            <input type="file" accept="image/*" onChange={handleFile} />
+          </label>
+        ) : (
+          <button onClick={toggleDesignMode}>
+            ⚙️ Design Mode
+          </button>
+        )}
         {msg && <span className="print-msg">{msg}</span>}
       </div>
 
@@ -1507,7 +1632,7 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
       <div className="layout-row">
         <div className="print-page-wrap">
           <div
-          className={`print-page ${formType === 'application' ? 'caps-form' : ''}`}
+          className={`print-page ${formType === 'application' ? 'caps-form' : ''} ${!isDesignMode ? 'fill-mode' : ''}`}
           ref={pageRef}
           onClick={handlePageClick}
           onContextMenu={(e) => {
@@ -1587,7 +1712,7 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
           </div>
         </div>
 
-        {showPanel && (
+        {showPanel && isDesignMode && (
           <aside className="fine-tune-panel">
             <h3>Fine-tune positions</h3>
             {(() => {

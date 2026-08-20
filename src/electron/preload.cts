@@ -32,6 +32,9 @@ const api = {
     ipcRenderer.invoke('load-submissions', formType),
   deleteSubmission: (id: number): Promise<boolean> =>
     ipcRenderer.invoke('delete-submission', id),
+  minimizeWindow: (): Promise<void> => ipcRenderer.invoke('window-minimize'),
+  maximizeWindow: (): Promise<void> => ipcRenderer.invoke('window-maximize'),
+  closeWindow: (): Promise<void> => ipcRenderer.invoke('window-close'),
 }
 
 contextBridge.exposeInMainWorld('electronAPI', api)

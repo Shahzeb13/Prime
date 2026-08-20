@@ -66,11 +66,13 @@ function saveSubmission(formType: string, payload: unknown): number | null {
 
 function loadSubmissions(formType: string) {
   if (!db) return []
-  const rows = db
-    .prepare(
-      "SELECT id, form_type, payload, created_at FROM submissions WHERE form_type = ? ORDER BY id DESC",
-    )
-    .all(formType) as unknown as SubmissionRow[]
+  const isAll = formType === "all" || !formType
+  const sql = isAll
+    ? "SELECT id, form_type, payload, created_at FROM submissions ORDER BY id DESC"
+    : "SELECT id, form_type, payload, created_at FROM submissions WHERE form_type = ? ORDER BY id DESC"
+  const rows = (isAll
+    ? db.prepare(sql).all()
+    : db.prepare(sql).all(formType)) as unknown as SubmissionRow[]
   return rows.map((r) => ({
     id: r.id,
     formType: r.form_type,
@@ -264,6 +266,23 @@ function registerIpcHandlers(): void {
       return null
     }
   })
+
+  ipcMain.handle("window-minimize", () => {
+    if (mainWindow) mainWindow.minimize()
+  })
+
+  ipcMain.handle("window-maximize", () => {
+    if (!mainWindow) return
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize()
+    } else {
+      mainWindow.maximize()
+    }
+  })
+
+  ipcMain.handle("window-close", () => {
+    if (mainWindow) mainWindow.close()
+  })
 }
 
 app.on("ready", () => {
@@ -272,10 +291,16 @@ app.on("ready", () => {
 
   const mainWindowInstance = new BrowserWindow({
     title: "PrimeView",
+    frame: isDev(),
+    titleBarStyle: isDev() ? "default" : "hidden",
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(import.meta.dirname, "preload.cjs"),
     },
   })
+  if (!isDev()) {
+    mainWindowInstance.setMenu(null)
+  }
   mainWindow = mainWindowInstance
   if (isDev()) {
     mainWindow.loadURL('http://localhost:5135');
