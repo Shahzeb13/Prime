@@ -2,30 +2,6 @@
   "formType": "schedule",
   "positions": [
     {
-      "category:05 Marla Residential": {
-        "top": 10,
-        "left": 6
-      },
-      "category:7.5 Marla Residential": {
-        "top": 10,
-        "left": 54
-      },
-      "category:10 Marla Residential": {
-        "top": 16,
-        "left": 6
-      },
-      "category:13 Marla Residential": {
-        "top": 16,
-        "left": 54
-      },
-      "category:1 Kanal Residential": {
-        "top": 22,
-        "left": 6
-      },
-      "category:2 Kanal Farm House": {
-        "top": 22,
-        "left": 54
-      },
       "block_no": {
         "top": 64.33978487963995,
         "left": 22.46373629837788
@@ -41,11 +17,6 @@
       "plot_size": {
         "top": 66.5003509641191,
         "left": 59.36665630882578
-      },
-      "applicant_signature": {
-        "top": 13,
-        "left": 37,
-        "width": 200
       },
       "custom_4": {
         "top": 59.99280007432181,
@@ -80,7 +51,7 @@
   "customFields": [
     {
       "id": "custom_8",
-      "label": "Kanal Residential",
+      "label": "",
       "formType": "schedule",
       "pageIndex": 0,
       "type": "checkbox",
@@ -88,7 +59,7 @@
     },
     {
       "id": "custom_9",
-      "label": "Marla Residential",
+      "label": "",
       "formType": "schedule",
       "pageIndex": 0,
       "type": "checkbox",
@@ -96,7 +67,7 @@
     },
     {
       "id": "custom_a",
-      "label": "Marla Residential",
+      "label": "",
       "formType": "schedule",
       "pageIndex": 0,
       "type": "checkbox",
@@ -104,7 +75,7 @@
     },
     {
       "id": "custom_b",
-      "label": "Kanal Farm House",
+      "label": "",
       "formType": "schedule",
       "pageIndex": 0,
       "type": "checkbox",
@@ -112,7 +83,7 @@
     },
     {
       "id": "custom_e",
-      "label": "Marla Residential",
+      "label": "",
       "formType": "schedule",
       "pageIndex": 0,
       "type": "checkbox",
@@ -120,15 +91,12 @@
     },
     {
       "id": "custom_f",
-      "label": "Marla Residential",
+      "label": "",
       "formType": "schedule",
       "pageIndex": 0,
       "type": "checkbox",
       "width": "140px"
     }
   ],
-  "hiddenFields": [
-    "category",
-    "applicant_signature"
-  ]
+  "hiddenFields": []
 }

@@ -87,6 +87,14 @@ function deleteSubmission(id: number): boolean {
   return res.changes > 0
 }
 
+function updateSubmission(id: number, formType: string, payload: unknown): boolean {
+  if (!db) return false
+  const res = db
+    .prepare("UPDATE submissions SET form_type = ?, payload = ? WHERE id = ?")
+    .run(formType, JSON.stringify(payload), id)
+  return res.changes > 0
+}
+
 const MIME_EXT: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
@@ -199,6 +207,10 @@ function registerIpcHandlers(): void {
   ipcMain.handle("load-submissions", (_event, formType: string) => loadSubmissions(formType))
 
   ipcMain.handle("delete-submission", (_event, id: number) => deleteSubmission(id))
+
+  ipcMain.handle("update-submission", (_event, id: number, formType: string, payload: unknown) =>
+    updateSubmission(id, formType, payload),
+  )
 
   ipcMain.handle("dialog-print", (_event, pageSize?: { width: number; height: number }) =>
     new Promise((resolve) => {

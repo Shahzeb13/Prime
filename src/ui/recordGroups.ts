@@ -1,5 +1,4 @@
 import type { FormType } from './formTypes'
-import { CATEGORY_OPTIONS } from './formTypes'
 
 export interface RecordFieldDef {
   key: string
@@ -61,7 +60,6 @@ export const RECORD_GROUPS: Record<FormType, RecordGroupDef[]> = {
     {
       title: 'Office Use Only',
       fields: [
-        { key: 'office_sign', label: 'Sign' },
         { key: 'project_name', label: 'Project Name' },
         { key: 'installment', label: 'Installment' },
         { key: 'full_payment', label: 'Full Payment' },
@@ -79,13 +77,8 @@ export const RECORD_GROUPS: Record<FormType, RecordGroupDef[]> = {
   ],
   schedule: [
     {
-      title: 'Please Tick Particular Category',
+      title: 'Plot Details',
       fields: [
-        ...CATEGORY_OPTIONS.map((opt) => ({
-          key: `category:${opt}`,
-          label: opt,
-          kind: 'category' as const,
-        })),
         { key: 'block_no', label: 'Block No' },
         { key: 'street_no', label: 'Street No' },
         { key: 'plot_no', label: 'Plot No' },
@@ -106,7 +99,6 @@ export const RECORD_GROUPS: Record<FormType, RecordGroupDef[]> = {
       fields: [
         { key: 'applicant_name', label: 'Name of Applicant' },
         { key: 'applicant_so_do_wo', label: 'S/O, D/O, W/O' },
-        { key: 'applicant_cnic_nicop', label: 'CNIC / NICOP#' },
         { key: 'applicant_contact_no', label: 'Contact No' },
         { key: 'applicant_email', label: 'Email Address' },
         { key: 'applicant_mailing_address', label: 'Mailing Address' },
@@ -120,13 +112,8 @@ export const RECORD_GROUPS: Record<FormType, RecordGroupDef[]> = {
       ],
     },
     {
-      title: 'Particular Category',
+      title: 'Plot Details',
       fields: [
-        ...CATEGORY_OPTIONS.map((opt) => ({
-          key: `category:${opt}`,
-          label: opt,
-          kind: 'category' as const,
-        })),
         { key: 'block_no', label: 'Block No' },
         { key: 'street_no', label: 'Street No' },
         { key: 'plot_no', label: 'Plot No' },
@@ -155,6 +142,37 @@ export const RECORD_GROUPS: Record<FormType, RecordGroupDef[]> = {
           key: 'bank_branch_deposited',
           label: 'Bank Name & Branch Code where Application/Amount is deposited',
         },
+      ],
+    },
+  ],
+  open_file: [
+    {
+      title: 'Applicant Details',
+      fields: [
+        { key: 'name', label: 'NAME' },
+        { key: 's_d_w_o', label: 'S/D,O/O,W/O' },
+        { key: 'cnic', label: 'CNIC' },
+        { key: 'date', label: 'DATE' },
+        { key: 'address', label: 'Mailing Address' },
+      ],
+    },
+    {
+      title: 'Plot & Security Details',
+      fields: [
+        { key: 'security_no', label: 'Security No' },
+        { key: 'plot_size', label: 'Plot Size' },
+        { key: 'block_no', label: 'Block No' },
+        { key: 'plot_type', label: 'Plot Type' },
+        { key: 'street_no', label: 'Street No' },
+        { key: 'plot_no', label: 'Plot No' },
+        { key: 'membership_no', label: 'Member Ship #' },
+      ],
+    },
+    {
+      title: 'Payment Details',
+      fields: [
+        { key: 'paid_amount', label: 'Paid Amount' },
+        { key: 'qr_code', label: 'QR Code' },
       ],
     },
   ],

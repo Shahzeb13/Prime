@@ -17,6 +17,7 @@ interface ElectronAPI {
   loadHiddenFields: () => Promise<unknown>
   saveHiddenFields: (fields: unknown) => Promise<boolean>
   saveSubmission: (formType: string, payload: unknown) => Promise<number | null>
+  updateSubmission: (id: number, formType: string, payload: unknown) => Promise<boolean>
   loadSubmissions: (formType: string) => Promise<unknown[]>
   deleteSubmission: (id: number) => Promise<boolean>
   minimizeWindow: () => Promise<void>
