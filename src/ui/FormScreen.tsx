@@ -26,9 +26,10 @@ interface CustomFieldDef {
 interface Props {
   formType: FormType
   formData: FormData
+  editingRecordId?: number | null
   onChange: (field: string, value: FormFieldValue) => void
   onBack: () => void
-  onSave: (formType: FormType, data: unknown) => Promise<number | null>
+  onSave: (formType: FormType, data: unknown, recordId?: number | null) => Promise<number | null>
 }
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n))
@@ -51,7 +52,7 @@ type ResizeDir = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
 
 interface DragState {
   fieldKey: string
-  mode: 'move' | 'resize'
+  mode: 'move' | 'resize' | 'marquee'
   startX: number
   startY: number
   origTop: number
@@ -60,6 +61,7 @@ interface DragState {
   origHeight: number
   dir: ResizeDir | null
   moved: boolean
+  groupOrigPositions?: Record<string, { top: number; left: number }>
 }
 
 function metaForKey(pageMeta: FieldMeta[], key: string): FieldMeta {
@@ -74,7 +76,14 @@ function metaForKey(pageMeta: FieldMeta[], key: string): FieldMeta {
   return pageMeta.find((m) => m.id === key) ?? pageMeta[0]
 }
 
-export default function FormScreen({ formType, formData, onChange, onBack, onSave }: Props) {
+export default function FormScreen({
+  formType,
+  formData,
+  editingRecordId,
+  onChange,
+  onBack,
+  onSave,
+}: Props) {
   const [positions, setPositions] = useState<PositionsMap | null>(null)
   const [calibrate, setCalibrate] = useState(false)
   const [showPanel, setShowPanel] = useState(false)
@@ -96,6 +105,82 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
     }
     return false
   })
+
+  const [showDemoScale, setShowDemoScale] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('showDemoScale')
+      if (saved != null) return saved === 'true'
+    }
+    return true
+  })
+
+  const handleToggleDemoScale = (checked: boolean) => {
+    setShowDemoScale(checked)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('showDemoScale', String(checked))
+    }
+  }
+
+  const [showCalibrationModal, setShowCalibrationModal] = useState(false)
+
+  const [globalOffsetX, setGlobalOffsetX] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(`globalOffset_${formType}`)
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (typeof parsed.x === 'number') return parsed.x
+        }
+      } catch {}
+    }
+    return 0
+  })
+
+  const [globalOffsetY, setGlobalOffsetY] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(`globalOffset_${formType}`)
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (typeof parsed.y === 'number') return parsed.y
+        }
+      } catch {}
+    }
+    return 0
+  })
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--global-offset-x', `${globalOffsetX}mm`)
+    document.documentElement.style.setProperty('--global-offset-y', `${globalOffsetY}mm`)
+  }, [globalOffsetX, globalOffsetY])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(`globalOffset_${formType}`)
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          setGlobalOffsetX(typeof parsed.x === 'number' ? parsed.x : 0)
+          setGlobalOffsetY(typeof parsed.y === 'number' ? parsed.y : 0)
+          return
+        }
+      } catch {}
+    }
+    setGlobalOffsetX(0)
+    setGlobalOffsetY(0)
+  }, [formType])
+
+  const handleOffsetChange = (x: number, y: number) => {
+    setGlobalOffsetX(x)
+    setGlobalOffsetY(y)
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(`globalOffset_${formType}`, JSON.stringify({ x, y }))
+      } catch (e) {
+        console.error('Error saving global offset:', e)
+      }
+    }
+  }
 
   const handleToggleFitToPage = (checked: boolean) => {
     setFitToPage(checked)
@@ -122,12 +207,16 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
   }
   const [pageIndex, setPageIndex] = useState(0)
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([])
+  const [marqueeBox, setMarqueeBox] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null)
+  const [isRibbonCollapsed, setIsRibbonCollapsed] = useState(false)
   const [msg, setMsg] = useState('')
   const [customFields, setCustomFields] = useState<CustomFieldDef[]>([])
   const [hiddenFields, setHiddenFields] = useState<Record<FormType, string[]>>({
     application: [],
     schedule: [],
     booking: [],
+    open_file: [],
   })
   const [addingField, setAddingField] = useState(false)
   const [newFieldName, setNewFieldName] = useState('')
@@ -330,9 +419,16 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
       })
     }
     if (window.electronAPI?.loadHiddenFields) {
-      window.electronAPI.loadHiddenFields().then((fields) => {
-        if (fields && typeof fields === 'object') {
-          setHiddenFields(fields as Record<FormType, string[]>)
+      window.electronAPI.loadHiddenFields().then(() => {
+        const emptyHidden: Record<FormType, string[]> = {
+          application: [],
+          schedule: [],
+          booking: [],
+          open_file: [],
+        }
+        setHiddenFields(emptyHidden)
+        if (window.electronAPI?.saveHiddenFields) {
+          window.electronAPI.saveHiddenFields(emptyHidden)
         }
       })
     }
@@ -368,15 +464,13 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
     localStorage.setItem('pageSize', JSON.stringify(pageSize))
   }, [pageSize])
 
-  // Arrow-key nudge: move the selected field exactly 1px while in Calibrate mode.
-  // We inline the save logic here (reading positionsRef directly) so we don't
-  // introduce a forward-reference dependency on setAndSavePosition.
+  // Arrow-key nudge: move all selected fields exactly 1px (or 5px with Shift) while in Calibrate mode.
   useEffect(() => {
     if (!calibrate) return
     const onKeyDown = (e: KeyboardEvent) => {
-      if (!selectedKey) return
+      const activeKeys = selectedKeys.length > 0 ? selectedKeys : selectedKey ? [selectedKey] : []
+      if (activeKeys.length === 0) return
       const tag = (e.target as HTMLElement).tagName
-      // Don't hijack arrow keys when the user is typing in an input/textarea
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       const arrows = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']
       if (!arrows.includes(e.key)) return
@@ -386,17 +480,23 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
       const ph = rect?.height || 1344
       const base = positionsRef.current ?? defaultPositions
       const pagePos = base[formType]?.[pageIndex] ?? {}
-      const p = pagePos[selectedKey] ?? { top: 5, left: 5 }
-      const dx = (1 / pw) * 100
-      const dy = (1 / ph) * 100
-      let { top, left } = p
-      if (e.key === 'ArrowUp')    top  = clamp(top  - dy, 0, 100)
-      if (e.key === 'ArrowDown')  top  = clamp(top  + dy, 0, 100)
-      if (e.key === 'ArrowLeft')  left = clamp(left - dx, 0, 100)
-      if (e.key === 'ArrowRight') left = clamp(left + dx, 0, 100)
-      const newP = { ...p, top, left }
+      const stepMult = e.shiftKey ? 5 : 1
+      const dx = (stepMult / pw) * 100
+      const dy = (stepMult / ph) * 100
+
+      let nextPg = { ...pagePos }
+      for (const k of activeKeys) {
+        const p = pagePos[k] ?? { top: 5, left: 5 }
+        let { top, left } = p
+        if (e.key === 'ArrowUp')    top  = clamp(top  - dy, 0, 100)
+        if (e.key === 'ArrowDown')  top  = clamp(top  + dy, 0, 100)
+        if (e.key === 'ArrowLeft')  left = clamp(left - dx, 0, 100)
+        if (e.key === 'ArrowRight') left = clamp(left + dx, 0, 100)
+        nextPg[k] = { ...p, top, left }
+      }
+
       const nextPages = base[formType].map((pg: Record<string, FieldPosition>, i: number) =>
-        i === pageIndex ? { ...pg, [selectedKey]: newP } : pg
+        i === pageIndex ? nextPg : pg
       )
       const next = { ...base, [formType]: nextPages }
       positionsRef.current = next
@@ -405,7 +505,7 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [calibrate, selectedKey, formType, pageIndex])
+  }, [calibrate, selectedKey, selectedKeys, formType, pageIndex])
 
   const updatePosition = (fieldKey: string, p: FieldPosition) => {
     const base = positionsRef.current ?? defaultPositions
@@ -441,6 +541,56 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
   const editPosition = (fieldKey: string, p: FieldPosition) => {
     pushUndo()
     setAndSavePosition(fieldKey, p)
+  }
+
+  const activeTargetKeys = selectedKeys.length > 0
+    ? selectedKeys
+    : selectedKey
+      ? [selectedKey]
+      : []
+
+  const currentHeaderFontSize = (() => {
+    if (activeTargetKeys.length > 0) {
+      const firstKey = activeTargetKeys[0]
+      const p = pagePositions[firstKey]
+      if (p?.fontSize) return p.fontSize
+      if (p?.height) return Math.round(clamp(p.height * 0.65, 9, 120))
+      return 13
+    }
+    for (const key of pageKeys) {
+      const p = pagePositions[key]
+      if (p?.fontSize) return p.fontSize
+    }
+    return 13
+  })()
+
+  const handleHeaderFontSizeChange = (newSize: number, forceAll: boolean = false) => {
+    const clamped = clamp(newSize, 8, 120)
+    const targets = forceAll || activeTargetKeys.length === 0
+      ? pageKeys.filter((k) => metaForKey(pageMetaList, k).type !== 'image')
+      : activeTargetKeys
+
+    if (targets.length === 0) return
+
+    pushUndo()
+
+    const base = positionsRef.current ?? defaultPositions
+    const curPagePos = base[formType]?.[pageIndex] ?? {}
+    const nextPg = { ...curPagePos }
+
+    for (const k of targets) {
+      const existing = curPagePos[k] ?? { top: 5, left: 5 }
+      nextPg[k] = { ...existing, fontSize: clamped }
+    }
+
+    const nextPages = base[formType].map((pg, i) => (i === pageIndex ? nextPg : pg))
+    const next = { ...base, [formType]: nextPages }
+    positionsRef.current = next
+    setPositions(next)
+    if (window.electronAPI?.savePositions) {
+      window.electronAPI.savePositions(next)
+    }
+    setMsg(`Font size updated to ${clamped}px for ${targets.length} field${targets.length > 1 ? 's' : ''}.`)
   }
 
   const handleUndo = () => {
@@ -577,14 +727,40 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
     return sep > 0 ? key.slice(0, sep) : key
   }
 
-  const selectKey = (key: string | null) => {
-    setSelectedKey(key)
-    if (key) {
-      const defId = customIdForKey(key)
-      const def = defId ? customFields.find((c) => c.id === defId) : undefined
-      setRenameValue(def?.label ?? '')
-    } else {
+  const selectKey = (key: string | null, multi = false) => {
+    if (!key) {
+      setSelectedKey(null)
+      setSelectedKeys([])
       setRenameValue('')
+      return
+    }
+
+    if (multi) {
+      setSelectedKeys((prev) => {
+        const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+        const lastKey = next[next.length - 1] ?? null
+        setSelectedKey(lastKey)
+        if (lastKey) {
+          const defId = customIdForKey(lastKey)
+          const def = defId ? customFields.find((c) => c.id === defId) : undefined
+          setRenameValue(def?.label ?? '')
+        } else {
+          setRenameValue('')
+        }
+        return next
+      })
+    } else {
+      setSelectedKeys((prev) => {
+        if (prev.length > 1 && prev.includes(key)) {
+          setSelectedKey(key)
+          return prev
+        }
+        setSelectedKey(key)
+        const defId = customIdForKey(key)
+        const def = defId ? customFields.find((c) => c.id === defId) : undefined
+        setRenameValue(def?.label ?? '')
+        return [key]
+      })
     }
   }
 
@@ -929,10 +1105,63 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
     if (!drag.moved && Math.abs(dx) + Math.abs(dy) > 2) {
       drag.moved = true
     }
+
+    if (drag.mode === 'marquee') {
+      if (e.clientY > window.innerHeight - 60) {
+        window.scrollBy({ top: 15, behavior: 'auto' })
+      } else if (e.clientY < 60) {
+        window.scrollBy({ top: -15, behavior: 'auto' })
+      }
+
+      const pRect = pageRef.current?.getBoundingClientRect()
+      if (pRect) {
+        const pageX = e.clientX - pRect.left
+        const pageY = e.clientY - pRect.top
+
+        setMarqueeBox({
+          startX: drag.startX,
+          startY: drag.startY,
+          currentX: pageX,
+          currentY: pageY,
+        })
+
+        const boxMinX = Math.min(drag.startX, pageX)
+        const boxMaxX = Math.max(drag.startX, pageX)
+        const boxMinY = Math.min(drag.startY, pageY)
+        const boxMaxY = Math.max(drag.startY, pageY)
+
+        const foundKeys: string[] = []
+        const pagePos = (positionsRef.current ?? defaultPositions)[formType]?.[pageIndex] ?? {}
+        for (const key of pageKeys) {
+          const p = pagePos[key] ?? { top: 5, left: 5 }
+          const meta = metaForKey(pageMetaList, key)
+          const fWidth = p.width ?? (meta.type === 'image' ? 110 : 140)
+          const fHeight = p.height ?? (meta.type === 'image' ? 146 : 24)
+
+          const fLeftPx = (p.left / 100) * pRect.width
+          const fTopPx = (p.top / 100) * pRect.height
+          const fRightPx = fLeftPx + fWidth
+          const fBottomPx = fTopPx + fHeight
+
+          if (
+            fRightPx >= boxMinX &&
+            fLeftPx <= boxMaxX &&
+            fBottomPx >= boxMinY &&
+            fTopPx <= boxMaxY
+          ) {
+            foundKeys.push(key)
+          }
+        }
+        if (foundKeys.length > 0) {
+          setSelectedKeys(foundKeys)
+          setSelectedKey(foundKeys[0])
+        }
+      }
+      return
+    }
+
     const rect = page.getBoundingClientRect()
     if (drag.mode === 'resize') {
-      const dx = e.clientX - drag.startX
-      const dy = e.clientY - drag.startY
       const dir = drag.dir ?? 'e'
       let top = drag.origTop
       let left = drag.origLeft
@@ -943,35 +1172,123 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
         width = clamp(drag.origWidth - dx, 30, 900)
         left = drag.origLeft + (drag.origWidth - width)
       }
-      if (dir.includes('s')) height = clamp(drag.origHeight + dy, 40, 1100)
+      if (dir.includes('s')) height = clamp(drag.origHeight + dy, 14, 1100)
       if (dir.includes('n')) {
-        height = clamp(drag.origHeight - dy, 40, 1100)
+        height = clamp(drag.origHeight - dy, 14, 1100)
         top = drag.origTop + (drag.origHeight - height)
       }
+      const meta = metaForKey(pageMetaList, drag.fieldKey)
       const next: FieldPosition = { top, left, width }
-      if (dir.includes('n') || dir.includes('s')) next.height = height
+      if (dir.includes('n') || dir.includes('s') || height !== drag.origHeight) {
+        next.height = height
+        if (meta.type !== 'image') {
+          next.fontSize = Math.round(clamp(height * 0.65, 9, 120))
+        }
+      }
       updatePosition(drag.fieldKey, next)
       return
     }
-    const top = clamp(drag.origTop + (dy / rect.height) * 100, 0, 100)
-    const left = clamp(drag.origLeft + (dx / rect.width) * 100, 0, 100)
+
+    const dyPercent = (dy / rect.height) * 100
+    const dxPercent = (dx / rect.width) * 100
+
+    if (drag.groupOrigPositions && Object.keys(drag.groupOrigPositions).length > 1) {
+      const group = drag.groupOrigPositions
+      const keys = Object.keys(group)
+      const base = positionsRef.current ?? defaultPositions
+      const curPagePos = base[formType]?.[pageIndex] ?? {}
+      const nextPg = { ...curPagePos }
+
+      for (const k of keys) {
+        const orig = group[k]
+        const newTop = clamp(orig.top + dyPercent, 0, 100)
+        const newLeft = clamp(orig.left + dxPercent, 0, 100)
+        const existing = curPagePos[k] ?? { top: 5, left: 5 }
+        nextPg[k] = { ...existing, top: newTop, left: newLeft }
+      }
+
+      const nextPages = base[formType].map((pg, i) => (i === pageIndex ? nextPg : pg))
+      const next = { ...base, [formType]: nextPages }
+      positionsRef.current = next
+      setPositions(next)
+      return
+    }
+
+    const top = clamp(drag.origTop + dyPercent, 0, 100)
+    const left = clamp(drag.origLeft + dxPercent, 0, 100)
     updatePosition(drag.fieldKey, { top, left })
   }
 
   const stopDragging = () => {
-    const moved = dragRef.current?.moved
+    const drag = dragRef.current
+    const moved = drag?.moved
     dragRef.current = null
     window.removeEventListener('mousemove', handleMouseMove)
     window.removeEventListener('mouseup', stopDragging)
-    if (moved) selectKey(null)
+
+    if (drag?.mode === 'marquee') {
+      setMarqueeBox((m) => {
+        if (moved && m && pageRef.current) {
+          const pRect = pageRef.current.getBoundingClientRect()
+          const boxMinX = Math.min(m.startX, m.currentX)
+          const boxMaxX = Math.max(m.startX, m.currentX)
+          const boxMinY = Math.min(m.startY, m.currentY)
+          const boxMaxY = Math.max(m.startY, m.currentY)
+
+          const foundKeys: string[] = []
+          const pagePos = (positionsRef.current ?? defaultPositions)[formType]?.[pageIndex] ?? {}
+          for (const key of pageKeys) {
+            const p = pagePos[key] ?? { top: 5, left: 5 }
+            const meta = metaForKey(pageMetaList, key)
+            const fWidth = p.width ?? (meta.type === 'image' ? 110 : 140)
+            const fHeight = p.height ?? (meta.type === 'image' ? 146 : 24)
+
+            const fLeftPx = (p.left / 100) * pRect.width
+            const fTopPx = (p.top / 100) * pRect.height
+            const fRightPx = fLeftPx + fWidth
+            const fBottomPx = fTopPx + fHeight
+
+            if (
+              fRightPx >= boxMinX &&
+              fLeftPx <= boxMaxX &&
+              fBottomPx >= boxMinY &&
+              fTopPx <= boxMaxY
+            ) {
+              foundKeys.push(key)
+            }
+          }
+          if (foundKeys.length > 0) {
+            setSelectedKeys(foundKeys)
+            setSelectedKey(foundKeys[0])
+          }
+        }
+        return null
+      })
+      return
+    }
+
     savePositions()
   }
 
   const startDrag = (e: React.MouseEvent, fieldKey: string, p: FieldPosition) => {
-    selectKey(fieldKey)
+    const isMultiClick = e.shiftKey || e.ctrlKey
+    selectKey(fieldKey, isMultiClick)
     if (!calibrate) return
     pushUndo()
     e.preventDefault()
+
+    const currentGroup = selectedKeys.includes(fieldKey) ? selectedKeys : [fieldKey]
+    let groupOrigPositions: Record<string, { top: number; left: number }> | undefined
+    if (currentGroup.length > 1) {
+      const base = positionsRef.current ?? defaultPositions
+      const pagePos = base[formType]?.[pageIndex] ?? {}
+      groupOrigPositions = {}
+      for (const k of currentGroup) {
+        const itemP = pagePos[k] ?? { top: 5, left: 5 }
+        groupOrigPositions[k] = { top: itemP.top, left: itemP.left }
+      }
+    }
+
     dragRef.current = {
       fieldKey,
       mode: 'move',
@@ -981,6 +1298,40 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
       origLeft: p.left,
       origWidth: p.width ?? 140,
       origHeight: p.height ?? 0,
+      dir: null,
+      moved: false,
+      groupOrigPositions,
+    }
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', stopDragging)
+  }
+
+  const startMarquee = (e: React.MouseEvent) => {
+    if (!calibrate && !isDesignMode) return
+    const target = e.target as HTMLElement
+    if (target.closest('.pos-field') || target.closest('button') || target.closest('input')) return
+    if (!e.shiftKey && !e.ctrlKey) {
+      selectKey(null)
+    }
+    const pRect = pageRef.current?.getBoundingClientRect()
+    const pageX = pRect ? e.clientX - pRect.left : e.clientX
+    const pageY = pRect ? e.clientY - pRect.top : e.clientY
+
+    setMarqueeBox({
+      startX: pageX,
+      startY: pageY,
+      currentX: pageX,
+      currentY: pageY,
+    })
+    dragRef.current = {
+      fieldKey: '',
+      mode: 'marquee',
+      startX: pageX,
+      startY: pageY,
+      origTop: 0,
+      origLeft: 0,
+      origWidth: 0,
+      origHeight: 0,
       dir: null,
       moved: false,
     }
@@ -993,6 +1344,8 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
     if (!calibrate) return
     e.preventDefault()
     e.stopPropagation()
+    const meta = metaForKey(pageMetaList, fieldKey)
+    const defaultH = meta.type === 'image' ? 146 : (p.height ?? 28)
     dragRef.current = {
       fieldKey,
       mode: 'resize',
@@ -1000,8 +1353,8 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
       startY: e.clientY,
       origTop: p.top,
       origLeft: p.left,
-      origWidth: p.width ?? 140,
-      origHeight: p.height ?? 146,
+      origWidth: p.width ?? (meta.type === 'image' ? 110 : 140),
+      origHeight: p.height ?? defaultH,
       dir,
       moved: false,
     }
@@ -1020,7 +1373,6 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
       }
       return
     }
-    selectKey(null)
   }
 
   const handleReset = () => {
@@ -1080,8 +1432,19 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
     e.target.value = ''
   }
 
-  const saveToDb = async (): Promise<number | null> => {
-    return onSave(formType, formData[formType])
+  const saveToDb = async (asNewRecord = false): Promise<number | null> => {
+    const targetId = asNewRecord ? null : (editingRecordId ?? null)
+    const id = await onSave(formType, formData[formType], targetId)
+    if (id != null) {
+      if (targetId) {
+        setMsg(`Record #${targetId} updated successfully.`)
+      } else {
+        setMsg(`Record saved successfully (Record #${id}).`)
+      }
+    } else {
+      setMsg('Could not save submission to database.')
+    }
+    return id
   }
 
   const DUMMY_PHOTO =
@@ -1254,6 +1617,9 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
 
   const renderPrintContent = (key: string, metaList: FieldMeta[]): ReactNode => {
     const meta = metaForKey(metaList, key)
+    const p = pos[formType]?.[pageIndex]?.[key] ?? { top: 5, left: 5 }
+    const fs = p.fontSize ?? (p.height ? Math.round(clamp(p.height * 0.65, 9, 120)) : undefined)
+
     if (meta.type === 'image') {
       const src = typeof data[key] === 'string' ? (data[key] as string) : ''
       return src ? <img className="print-photo" src={src} alt="" /> : null
@@ -1263,14 +1629,39 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
       const group = sep > 0 ? key.slice(0, sep) : 'category'
       const opt = sep > 0 ? key.slice(sep + 1) : ''
       const selected = data[group]
-      return selected === opt ? <span className="tick-box">✔</span> : null
+      return selected === opt ? (
+        <span className="tick-box" style={{ fontSize: fs ? `${fs}px` : undefined }}>
+          ✔
+        </span>
+      ) : null
     }
     const v = data[key]
     if (typeof v === 'boolean') {
-      return v ? <span className="tick-box">✔</span> : null
+      return v ? (
+        <span className="tick-box" style={{ fontSize: fs ? `${fs}px` : undefined }}>
+          ✔
+        </span>
+      ) : null
     }
-    const s = typeof v === 'string' ? v : ''
-    return s ? <span className="print-value">{s}</span> : null
+    let s = typeof v === 'string' ? v : ''
+    if (meta.type === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      const [yyyy, mm, dd] = s.split('-')
+      s = `${dd}/${mm}/${yyyy}`
+    }
+    if (!s && !meta.showLabel) return null
+    if (meta.showLabel) {
+      return (
+        <span className="print-value-labeled" style={{ fontSize: fs ? `${fs}px` : undefined }}>
+          <strong className="print-label-prefix">{meta.label}: </strong>
+          <span className="print-value-text">{s}</span>
+        </span>
+      )
+    }
+    return (
+      <span className="print-value" style={{ fontSize: fs ? `${fs}px` : undefined }}>
+        {s}
+      </span>
+    )
   }
 
   const renderPreviewPage = (idx: number, img: string): ReactNode => {
@@ -1316,8 +1707,8 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
               key={key}
               className={`pos-field preview-field ${meta.type === 'image' ? 'image-field' : ''}`}
               style={{
-                top: `${p.top}%`,
-                left: `${p.left}%`,
+                top: `calc(${p.top}% + var(--global-offset-y, 0mm))`,
+                left: `calc(${p.left}% + var(--global-offset-x, 0mm))`,
                 ...(meta.type === 'image'
                   ? { width: `${p.width ?? 110}px`, height: `${p.height ?? 146}px` }
                   : {}),
@@ -1342,7 +1733,7 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
     const inputs = rawInputs.sort((a, b) => {
       const rectA = a.getBoundingClientRect()
       const rectB = b.getBoundingClientRect()
-      if (Math.abs(rectA.top - rectB.top) < 12) {
+      if (Math.abs(rectA.top - rectB.top) < 20) {
         return rectA.left - rectB.left
       }
       return rectA.top - rectB.top
@@ -1368,7 +1759,7 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
     const inputs = rawInputs.sort((a, b) => {
       const rectA = a.getBoundingClientRect()
       const rectB = b.getBoundingClientRect()
-      if (Math.abs(rectA.top - rectB.top) < 12) {
+      if (Math.abs(rectA.top - rectB.top) < 20) {
         return rectA.left - rectB.left
       }
       return rectA.top - rectB.top
@@ -1385,13 +1776,15 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
   }
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, key?: string) => {
+    const input = e.currentTarget
+    const isSmallBox = input.offsetWidth > 0 && input.offsetWidth <= 40
+
     if (e.key === 'Enter') {
       e.preventDefault()
-      focusNextInput(e.currentTarget)
+      focusNextInput(input)
     } else if (e.key === 'Backspace') {
-      const input = e.currentTarget
-      const isSmallBox = input.offsetWidth <= 40
-      if (input.value === '' || isSmallBox) {
+      if (isSmallBox) {
+        e.preventDefault()
         if (key && input.value !== '') {
           onChange(key, '')
         }
@@ -1422,7 +1815,7 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
             name={`${group}-${formType}-${pageIndex}`}
             checked={selected === opt}
             onChange={() => onChange(group, opt)}
-            onKeyDown={(e) => handleInputKeyDown(e, group)}
+            onKeyDown={handleInputKeyDown}
           />
           <span className="field-option-label">{opt}</span>
         </label>
@@ -1431,11 +1824,25 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
     if (meta.type === 'image') {
       const src = typeof data[key] === 'string' ? (data[key] as string) : ''
       return (
-        <label className="field-control image-control">
+        <label className="field-control image-control" title="Click to upload / change image">
           {src ? (
-            <img className="image-preview" src={src} alt="" />
+            <>
+              <img className="image-preview" src={src} alt="" />
+              <div className="image-change-overlay" title="Click to change / upload image">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+              </div>
+            </>
           ) : (
-            <span className="image-placeholder">Add photo</span>
+            <span className="image-placeholder">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '2px' }}>
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+              <span>{meta.label || 'Add photo'}</span>
+            </span>
           )}
           <input
             type="file"
@@ -1461,22 +1868,32 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
             type="checkbox"
             checked={data[key] === true}
             onChange={(e) => onChange(key, e.target.checked)}
-            onKeyDown={(e) => handleInputKeyDown(e, key)}
+            onKeyDown={handleInputKeyDown}
           />
-          <span className="field-option-label">{meta.label}</span>
         </label>
       )
     }
+    const p = pagePositions[key] ?? { top: 5, left: 5 }
+    const fs = p.fontSize ?? (p.height ? Math.round(clamp(p.height * 0.65, 9, 120)) : undefined)
+
     return (
-      <label className="field-control">
-        <span className="field-label">{meta.label}</span>
+      <label className={`field-control ${meta.showLabel ? 'has-prefix-label' : ''}`}>
+        {meta.showLabel && (
+          <span className="field-prefix-label" style={{ fontSize: fs ? `${fs}px` : undefined }}>
+            {meta.label}:
+          </span>
+        )}
         <input
           type={meta.type === 'date' ? 'date' : 'text'}
-          placeholder={meta.label}
+          placeholder={meta.showLabel ? 'Value' : meta.label}
           value={typeof data[key] === 'string' ? (data[key] as string) : ''}
           onChange={(e) => handleInputChange(key, e.target.value, e.target)}
           onKeyDown={(e) => handleInputKeyDown(e, key)}
-          style={{ width: widthPx != null ? `${widthPx}px` : meta.width }}
+          style={{
+            width: widthPx != null ? `${widthPx}px` : meta.width,
+            height: p.height ? `${p.height}px` : undefined,
+            fontSize: fs ? `${fs}px` : undefined,
+          }}
         />
       </label>
     )
@@ -1484,191 +1901,319 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
 
   return (
     <div className="form-screen">
-      <div className="form-toolbar">
-        <button className="back-btn" onClick={onBack}>
-          ← Back
-        </button>
-        <h2>{FORM_TYPE_LABELS[formType]}</h2>
-
-        {isDesignMode && (
-          <>
-            <label className="calibrate-toggle">
-              <input
-                type="checkbox"
-                checked={calibrate}
-                onChange={(e) => setCalibrate(e.target.checked)}
-              />
-              Calibrate
-            </label>
-            <label className="opacity-control">
-              Image
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                value={opacity}
-                onChange={(e) => setOpacity(Number(e.target.value))}
-              />
-            </label>
-            <label className="calibrate-toggle" title="Stretch the image to fill the paper edge to edge so positions map accurately">
-              <input
-                type="checkbox"
-                checked={fitToPage}
-                onChange={(e) => handleToggleFitToPage(e.target.checked)}
-              />
-              Fit image
-            </label>
-            <div className="page-size-selector">
-              <select
-                value={isCustomSize ? 'Custom' : (PAGE_PRESETS.find(p => p.width === pageSize.width && p.height === pageSize.height)?.label ?? 'Custom')}
-                onChange={(e) => {
-                  if (e.target.value === 'Custom') {
-                    setIsCustomSize(true)
-                    const wClean = pageSize.width.replace('mm', '').replace('in', '')
-                    const hClean = pageSize.height.replace('mm', '').replace('in', '')
-                    setCustomWidth(wClean)
-                    setCustomHeight(hClean)
-                    setCustomUnit(pageSize.width.endsWith('in') ? 'in' : 'mm')
-                  } else {
-                    const preset = PAGE_PRESETS.find(p => p.label === e.target.value)
-                    if (preset) {
-                      setPageSize({ width: preset.width, height: preset.height })
-                      setIsCustomSize(false)
-                      setCustomWidth('')
-                      setCustomHeight('')
-                      setCustomUnit(preset.width.endsWith('in') ? 'in' : 'mm')
-                    }
-                  }
-                }}
-              >
-                {PAGE_PRESETS.map(p => <option key={p.label} value={p.label}>{p.label}</option>)}
-                <option value="Custom">Custom...</option>
-              </select>
-              {isCustomSize && (
-                <>
-                  <input
-                    type="text"
-                    placeholder={`Width (${customUnit})`}
-                    value={customWidth}
-                    onChange={(e) => setCustomWidth(e.target.value)}
-                    style={{ width: '80px' }}
-                    onBlur={() => {
-                      const w = customWidth ? `${customWidth}${customUnit}` : pageSize.width
-                      const h = customHeight ? `${customHeight}${customUnit}` : pageSize.height
-                      setPageSize({ width: w, height: h })
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const w = `${customWidth || pageSize.width.replace('mm', '').replace('in', '')}${customUnit}`
-                        const h = `${customHeight || pageSize.height.replace('mm', '').replace('in', '')}${customUnit}`
-                        setPageSize({ width: w, height: h })
-                      }
-                    }}
-                  />
-                  <span>×</span>
-                  <input
-                    type="text"
-                    placeholder={`Height (${customUnit})`}
-                    value={customHeight}
-                    onChange={(e) => setCustomHeight(e.target.value)}
-                    style={{ width: '80px' }}
-                    onBlur={() => {
-                      const w = customWidth ? `${customWidth}${customUnit}` : pageSize.width
-                      const h = customHeight ? `${customHeight}${customUnit}` : pageSize.height
-                      setPageSize({ width: w, height: h })
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const w = `${customWidth || pageSize.width.replace('mm', '').replace('in', '')}${customUnit}`
-                        const h = `${customHeight || pageSize.height.replace('mm', '').replace('in', '')}${customUnit}`
-                        setPageSize({ width: w, height: h })
-                      }
-                    }}
-                  />
-                  <select
-                    value={customUnit}
-                    onChange={(e) => {
-                      const newUnit = e.target.value as 'mm' | 'in'
-                      setCustomUnit(newUnit)
-                      const w = customWidth ? `${customWidth}${newUnit}` : pageSize.width
-                      const h = customHeight ? `${customHeight}${newUnit}` : pageSize.height
-                      setPageSize({ width: w, height: h })
-                    }}
-                    style={{ width: '60px', padding: '2px 4px', fontSize: '12px' }}
-                  >
-                    <option value="mm">mm</option>
-                    <option value="in">in</option>
-                  </select>
-                </>
-              )}
-            </div>
-            <button className="primary" onClick={toggleDesignMode}>
-              Done Design
-            </button>
-            <button onClick={() => setShowPanel((s) => !s)}>Fine-tune</button>
-            <button onClick={handleUndo}>Undo</button>
-            <button onClick={handleReset}>Reset</button>
-            <button onClick={() => setAddingField((s) => !s)}>Add field</button>
-            {addingField && (
-              <span className="add-field-inline">
-                <input
-                  type="text"
-                  placeholder="Field name"
-                  value={newFieldName}
-                  autoFocus
-                  onChange={(e) => setNewFieldName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleAddField()
-                    if (e.key === 'Escape') setAddingField(false)
-                  }}
-                />
-                <select
-                  value={newFieldType}
-                  onChange={(e) =>
-                    setNewFieldType(e.target.value as 'text' | 'date' | 'checkbox' | 'radio' | 'image')
-                  }
-                >
-                  <option value="text">Text</option>
-                  <option value="date">Date</option>
-                  <option value="checkbox">Tick box</option>
-                  <option value="radio">Radio (options)</option>
-                  <option value="image">Image</option>
-                </select>
-                {newFieldType === 'radio' && (
-                  <input
-                    type="text"
-                    placeholder="Options (comma separated)"
-                    value={newFieldOptions}
-                    onChange={(e) => setNewFieldOptions(e.target.value)}
-                  />
-                )}
-                <button className="primary" onClick={handleAddField}>
-                  Add
-                </button>
-                <button onClick={() => setAddingField(false)}>Cancel</button>
+      <div className="form-toolbar ribbon-toolbar">
+        {/* Top Header Row: Title, Back button, Primary Actions */}
+        <div className="ribbon-header-row">
+          <button className="back-btn" onClick={onBack}>
+            ← Back
+          </button>
+          <div className="form-toolbar-title-group">
+            <h2>{FORM_TYPE_LABELS[formType]}</h2>
+            {editingRecordId && (
+              <span className="editing-record-badge" title={`Editing existing submission #${editingRecordId}`}>
+                Editing Record #{editingRecordId}
               </span>
             )}
-            <button onClick={handleSaveLayout}>Save layout</button>
-            <button onClick={handleExportLayout}>Export layout</button>
-            <button onClick={handleImportLayout}>Import layout</button>
-          </>
+          </div>
+          <div className="ribbon-primary-actions">
+            <button className="save-record-btn" onClick={() => saveToDb(false)}>
+              💾 {editingRecordId ? `Update Record #${editingRecordId}` : 'Save Record'}
+            </button>
+            <button className="primary" onClick={handlePrint}>
+              🖨️ Print
+            </button>
+            <button onClick={() => setShowCalibrationModal(true)} title="Adjust page print alignment for your printer">
+              📐 Alignment
+            </button>
+            <button
+              className={`design-mode-toggle-btn ${isDesignMode ? 'active' : ''}`}
+              onClick={toggleDesignMode}
+            >
+              {isDesignMode ? '✓ Done Design' : '⚙️ Design Mode'}
+            </button>
+            <button
+              type="button"
+              className="ribbon-toggle-btn"
+              title={isRibbonCollapsed ? "Expand Toolbar Sections" : "Shrink Toolbar to Save Vertical Space"}
+              onClick={() => setIsRibbonCollapsed((c) => !c)}
+            >
+              {isRibbonCollapsed ? '▼ Expand Tools' : '▲ Shrink Navbar'}
+            </button>
+          </div>
+        </div>
+
+        {/* Ribbon Body: Grouped Ribbon Sections */}
+        {!isRibbonCollapsed && (
+          <div className="ribbon-sections-row">
+          {/* Section 1: Typography */}
+          <div className="ribbon-group">
+            <div className="ribbon-group-title">🔤 Typography</div>
+            <div className="ribbon-group-content">
+              <div className="header-font-control" title="Adjust font/text size for form fields">
+                <button
+                  type="button"
+                  className="font-stepper-btn"
+                  title="Decrease font size by 1px"
+                  onClick={() => handleHeaderFontSizeChange(currentHeaderFontSize - 1)}
+                >
+                  A−
+                </button>
+                <input
+                  type="number"
+                  className="header-font-input"
+                  min={8}
+                  max={120}
+                  value={currentHeaderFontSize}
+                  onChange={(e) => {
+                    const val = Number(e.target.value)
+                    if (!isNaN(val) && val >= 8 && val <= 120) {
+                      handleHeaderFontSizeChange(val)
+                    }
+                  }}
+                />
+                <span className="font-unit">px</span>
+                <button
+                  type="button"
+                  className="font-stepper-btn"
+                  title="Increase font size by 1px"
+                  onClick={() => handleHeaderFontSizeChange(currentHeaderFontSize + 1)}
+                >
+                  A+
+                </button>
+                <select
+                  className="header-font-select"
+                  value={[9, 10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 32].includes(currentHeaderFontSize) ? currentHeaderFontSize : ''}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      handleHeaderFontSizeChange(Number(e.target.value))
+                    }
+                  }}
+                >
+                  <option value="" disabled>Size...</option>
+                  {[9, 10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 32].map((sz) => (
+                    <option key={sz} value={sz}>{sz}px</option>
+                  ))}
+                </select>
+                <span className="header-font-target-badge">
+                  {activeTargetKeys.length > 0
+                    ? `(${activeTargetKeys.length} selected)`
+                    : '(All on page)'}
+                </span>
+                {activeTargetKeys.length > 0 && (
+                  <button
+                    type="button"
+                    className="font-apply-all-btn"
+                    title="Apply this font size to all fields on this page"
+                    onClick={() => handleHeaderFontSizeChange(currentHeaderFontSize, true)}
+                  >
+                    Apply All
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: View & Canvas Settings */}
+          <div className="ribbon-group">
+            <div className="ribbon-group-title">👁️ View & Canvas</div>
+            <div className="ribbon-group-content">
+              {isDesignMode && (
+                <>
+                  <label className="calibrate-toggle">
+                    <input
+                      type="checkbox"
+                      checked={calibrate}
+                      onChange={(e) => setCalibrate(e.target.checked)}
+                    />
+                    Calibrate
+                  </label>
+                  <label className="opacity-control" title="Adjust form background image opacity">
+                    Img:
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={opacity}
+                      onChange={(e) => setOpacity(Number(e.target.value))}
+                    />
+                  </label>
+                  <label className="calibrate-toggle" title="Stretch the image to fill the paper edge to edge so positions map accurately">
+                    <input
+                      type="checkbox"
+                      checked={fitToPage}
+                      onChange={(e) => handleToggleFitToPage(e.target.checked)}
+                    />
+                    Fit image
+                  </label>
+                  <label className="calibrate-toggle" title="Show or hide field alignment scale lines on each field">
+                    <input
+                      type="checkbox"
+                      checked={showDemoScale}
+                      onChange={(e) => handleToggleDemoScale(e.target.checked)}
+                    />
+                    Demo Scale
+                  </label>
+                </>
+              )}
+              <div className="page-size-selector" title="Page size paper dimensions">
+                <select
+                  value={isCustomSize ? 'Custom' : (PAGE_PRESETS.find(p => p.width === pageSize.width && p.height === pageSize.height)?.label ?? 'Custom')}
+                  onChange={(e) => {
+                    if (e.target.value === 'Custom') {
+                      setIsCustomSize(true)
+                      const wClean = pageSize.width.replace('mm', '').replace('in', '')
+                      const hClean = pageSize.height.replace('mm', '').replace('in', '')
+                      setCustomWidth(wClean)
+                      setCustomHeight(hClean)
+                      setCustomUnit(pageSize.width.endsWith('in') ? 'in' : 'mm')
+                    } else {
+                      const preset = PAGE_PRESETS.find(p => p.label === e.target.value)
+                      if (preset) {
+                        setPageSize({ width: preset.width, height: preset.height })
+                        setIsCustomSize(false)
+                        setCustomWidth('')
+                        setCustomHeight('')
+                        setCustomUnit(preset.width.endsWith('in') ? 'in' : 'mm')
+                      }
+                    }
+                  }}
+                >
+                  {PAGE_PRESETS.map(p => <option key={p.label} value={p.label}>{p.label}</option>)}
+                  <option value="Custom">Custom...</option>
+                </select>
+                {isCustomSize && (
+                  <>
+                    <input
+                      type="text"
+                      placeholder={`W (${customUnit})`}
+                      value={customWidth}
+                      onChange={(e) => setCustomWidth(e.target.value)}
+                      style={{ width: '55px' }}
+                      onBlur={() => {
+                        const w = customWidth ? `${customWidth}${customUnit}` : pageSize.width
+                        const h = customHeight ? `${customHeight}${customUnit}` : pageSize.height
+                        setPageSize({ width: w, height: h })
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const w = `${customWidth || pageSize.width.replace('mm', '').replace('in', '')}${customUnit}`
+                          const h = `${customHeight || pageSize.height.replace('mm', '').replace('in', '')}${customUnit}`
+                          setPageSize({ width: w, height: h })
+                        }
+                      }}
+                    />
+                    <span>×</span>
+                    <input
+                      type="text"
+                      placeholder={`H (${customUnit})`}
+                      value={customHeight}
+                      onChange={(e) => setCustomHeight(e.target.value)}
+                      style={{ width: '55px' }}
+                      onBlur={() => {
+                        const w = customWidth ? `${customWidth}${customUnit}` : pageSize.width
+                        const h = customHeight ? `${customHeight}${customUnit}` : pageSize.height
+                        setPageSize({ width: w, height: h })
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const w = `${customWidth || pageSize.width.replace('mm', '').replace('in', '')}${customUnit}`
+                          const h = `${customHeight || pageSize.height.replace('mm', '').replace('in', '')}${customUnit}`
+                          setPageSize({ width: w, height: h })
+                        }
+                      }}
+                    />
+                    <select
+                      value={customUnit}
+                      onChange={(e) => {
+                        const newUnit = e.target.value as 'mm' | 'in'
+                        setCustomUnit(newUnit)
+                        const w = customWidth ? `${customWidth}${newUnit}` : pageSize.width
+                        const h = customHeight ? `${customHeight}${newUnit}` : pageSize.height
+                        setPageSize({ width: w, height: h })
+                      }}
+                      style={{ width: '50px', padding: '2px 4px', fontSize: '12px' }}
+                    >
+                      <option value="mm">mm</option>
+                      <option value="in">in</option>
+                    </select>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Layout & Field Tools (Design Mode) */}
+          {isDesignMode && (
+            <div className="ribbon-group">
+              <div className="ribbon-group-title">🛠️ Layout Tools</div>
+              <div className="ribbon-group-content">
+                <button onClick={() => setAddingField((s) => !s)}>➕ Add field</button>
+                {addingField && (
+                  <span className="add-field-inline">
+                    <input
+                      type="text"
+                      placeholder="Field name"
+                      value={newFieldName}
+                      autoFocus
+                      onChange={(e) => setNewFieldName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleAddField()
+                        if (e.key === 'Escape') setAddingField(false)
+                      }}
+                    />
+                    <select
+                      value={newFieldType}
+                      onChange={(e) =>
+                        setNewFieldType(e.target.value as 'text' | 'date' | 'checkbox' | 'radio' | 'image')
+                      }
+                    >
+                      <option value="text">Text</option>
+                      <option value="date">Date</option>
+                      <option value="checkbox">Tick box</option>
+                      <option value="radio">Radio</option>
+                      <option value="image">Image</option>
+                    </select>
+                    {newFieldType === 'radio' && (
+                      <input
+                        type="text"
+                        placeholder="Options (comma separated)"
+                        value={newFieldOptions}
+                        onChange={(e) => setNewFieldOptions(e.target.value)}
+                      />
+                    )}
+                    <button className="primary" onClick={handleAddField}>
+                      Add
+                    </button>
+                    <button onClick={() => setAddingField(false)}>Cancel</button>
+                  </span>
+                )}
+                <button onClick={() => setShowPanel((s) => !s)}>🎛️ Fine-tune</button>
+                <button onClick={handleUndo}>↩️ Undo</button>
+                <button onClick={handleReset}>🔄 Reset</button>
+                <button onClick={handleSaveLayout}>💾 Save Layout</button>
+                <button onClick={handleExportLayout}>📤 Export</button>
+                <button onClick={handleImportLayout}>📥 Import</button>
+                <label className="upload-btn">
+                  🖼️ Form Image
+                  <input type="file" accept="image/*" onChange={handleFile} />
+                </label>
+              </div>
+            </div>
+          )}
+        </div>
         )}
 
-        <button className="primary" onClick={handlePrint}>
-          Print
-        </button>
-        {isDesignMode ? (
-          <label className="upload-btn">
-            Upload form image
-            <input type="file" accept="image/*" onChange={handleFile} />
-          </label>
-        ) : (
-          <button onClick={toggleDesignMode}>
-            ⚙️ Design Mode
-          </button>
+        {(selectedKeys.length > 1 || msg) && (
+          <div className="ribbon-status-row">
+            {selectedKeys.length > 1 && (
+              <span className="print-msg" style={{ background: '#e2f0e6', color: '#137547', fontWeight: 600 }}>
+                📦 {selectedKeys.length} fields selected (drag any to move group)
+              </span>
+            )}
+            {msg && <span className="print-msg">{msg}</span>}
+          </div>
         )}
-        {msg && <span className="print-msg">{msg}</span>}
       </div>
 
       {totalPages > 1 && (
@@ -1694,11 +2239,29 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
           className={`print-page ${formType === 'application' ? 'caps-form' : ''} ${!isDesignMode ? 'fill-mode' : ''}`}
           ref={pageRef}
           onClick={handlePageClick}
+          onMouseDown={startMarquee}
           onContextMenu={(e) => {
             e.preventDefault()
             openContextMenu(e, null)
           }}
         >
+            {marqueeBox && (() => {
+              const boxMinX = Math.min(marqueeBox.startX, marqueeBox.currentX)
+              const boxMaxX = Math.max(marqueeBox.startX, marqueeBox.currentX)
+              const boxMinY = Math.min(marqueeBox.startY, marqueeBox.currentY)
+              const boxMaxY = Math.max(marqueeBox.startY, marqueeBox.currentY)
+              return (
+                <div
+                  className="selection-marquee"
+                  style={{
+                    left: `${boxMinX}px`,
+                    top: `${boxMinY}px`,
+                    width: `${boxMaxX - boxMinX}px`,
+                    height: `${boxMaxY - boxMinY}px`,
+                  }}
+                />
+              )
+            })()}
             {shownImage && (
               <img
                 className={`print-page-img ${fitToPage ? 'fit' : ''}`}
@@ -1715,15 +2278,16 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
               const widthPx = resizable
                 ? p.width ?? (meta.type === 'image' ? 110 : 140)
                 : undefined
+              const isGroupSel = selectedKeys.includes(key) && selectedKeys.length > 1
               return (
                 <div
                   key={key}
                   className={`pos-field ${meta.type === 'image' ? 'image-field' : ''} ${
                     calibrate ? 'calibrating' : ''
-                  } ${selectedKey === key ? 'selected' : ''}`}
+                  } ${selectedKey === key ? 'selected' : ''} ${isGroupSel ? 'selected-group' : ''}`}
                   style={{
-                    top: `${p.top}%`,
-                    left: `${p.left}%`,
+                    top: `calc(${p.top}% + var(--global-offset-y, 0mm))`,
+                    left: `calc(${p.left}% + var(--global-offset-x, 0mm))`,
                     ...(meta.type === 'image'
                       ? {
                           width: `${p.width ?? 110}px`,
@@ -1733,10 +2297,94 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
                   }}
                   onMouseDown={(e) => startDrag(e, key, p)}
                   onClick={(e) => e.stopPropagation()}
-                  onContextMenu={(e) => openContextMenu(e, key)}
+                  onContextMenu={(e) => {
+                    if (isDesignMode) openContextMenu(e, key)
+                  }}
                 >
+                  {isDesignMode && showDemoScale && (
+                    <div className="field-4axis-scale">
+                      {/* Top Center Scale Axis */}
+                      <svg className="axis-svg axis-top" width="20mm" height="20mm" viewBox="0 0 20 20">
+                        <line x1="10" y1="20" x2="10" y2="0" stroke="#000" strokeWidth="1" />
+                        {Array.from({ length: 21 }, (_, i) => {
+                          const is5 = i % 5 === 0
+                          const w = is5 ? 6 : 3
+                          return (
+                            <g key={i}>
+                              <line x1={10 - w / 2} y1={20 - i} x2={10 + w / 2} y2={20 - i} stroke="#000" strokeWidth={is5 ? 0.9 : 0.5} />
+                              {is5 && i > 0 && i % 10 === 0 && (
+                                <text x="14" y={20 - i + 1} fontSize="3.5" fill="#000" fontWeight="bold">{i}</text>
+                              )}
+                            </g>
+                          )
+                        })}
+                      </svg>
+
+                      {/* Bottom Center Scale Axis */}
+                      <svg className="axis-svg axis-bottom" width="20mm" height="20mm" viewBox="0 0 20 20">
+                        <line x1="10" y1="0" x2="10" y2="20" stroke="#000" strokeWidth="1" />
+                        {Array.from({ length: 21 }, (_, i) => {
+                          const is5 = i % 5 === 0
+                          const w = is5 ? 6 : 3
+                          return (
+                            <g key={i}>
+                              <line x1={10 - w / 2} y1={i} x2={10 + w / 2} y2={i} stroke="#000" strokeWidth={is5 ? 0.9 : 0.5} />
+                              {is5 && i > 0 && i % 10 === 0 && (
+                                <text x="14" y={i + 1} fontSize="3.5" fill="#000" fontWeight="bold">{i}</text>
+                              )}
+                            </g>
+                          )
+                        })}
+                      </svg>
+
+                      {/* Left Center Scale Axis */}
+                      <svg className="axis-svg axis-left" width="20mm" height="20mm" viewBox="0 0 20 20">
+                        <line x1="20" y1="10" x2="0" y2="10" stroke="#000" strokeWidth="1" />
+                        {Array.from({ length: 21 }, (_, i) => {
+                          const is5 = i % 5 === 0
+                          const h = is5 ? 6 : 3
+                          return (
+                            <g key={i}>
+                              <line x1={20 - i} y1={10 - h / 2} x2={20 - i} y2={10 + h / 2} stroke="#000" strokeWidth={is5 ? 0.9 : 0.5} />
+                              {is5 && i > 0 && i % 10 === 0 && (
+                                <text x={20 - i} y="15" textAnchor="middle" fontSize="3.5" fill="#000" fontWeight="bold">{i}</text>
+                              )}
+                            </g>
+                          )
+                        })}
+                      </svg>
+
+                      {/* Right Center Scale Axis */}
+                      <svg className="axis-svg axis-right" width="20mm" height="20mm" viewBox="0 0 20 20">
+                        <line x1="0" y1="10" x2="20" y2="10" stroke="#000" strokeWidth="1" />
+                        {Array.from({ length: 21 }, (_, i) => {
+                          const is5 = i % 5 === 0
+                          const h = is5 ? 6 : 3
+                          return (
+                            <g key={i}>
+                              <line x1={i} y1={10 - h / 2} x2={i} y2={10 + h / 2} stroke="#000" strokeWidth={is5 ? 0.9 : 0.5} />
+                              {is5 && i > 0 && i % 10 === 0 && (
+                                <text x={i} y="15" textAnchor="middle" fontSize="3.5" fill="#000" fontWeight="bold">{i}</text>
+                              )}
+                            </g>
+                          )
+                        })}
+                      </svg>
+                    </div>
+                  )}
                   <div className="field-control-wrap">{renderControl(key, widthPx)}</div>
-                  <div className="field-print">{renderPrintContent(key, pageMetaList)}</div>
+                  <div
+                    className="field-print"
+                    style={{
+                      ...(p.fontSize || p.height
+                        ? {
+                            fontSize: `${p.fontSize ?? Math.round(clamp((p.height ?? 28) * 0.65, 9, 120))}px`,
+                          }
+                        : {}),
+                    }}
+                  >
+                    {renderPrintContent(key, pageMetaList)}
+                  </div>
                   {calibrate && meta.type === 'image' && (
                     <>
                       <span className="resize-handle rh-n" onMouseDown={(e) => startResize(e, key, p, 'n')} />
@@ -1750,21 +2398,13 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
                     </>
                   )}
                   {calibrate && resizable && meta.type !== 'image' && (
-                    <span className="resize-handle rh-e" onMouseDown={(e) => startResize(e, key, p, 'e')} />
+                    <>
+                      <span className="resize-handle rh-e" onMouseDown={(e) => startResize(e, key, p, 'e')} />
+                      <span className="resize-handle rh-s" onMouseDown={(e) => startResize(e, key, p, 's')} />
+                      <span className="resize-handle rh-se" onMouseDown={(e) => startResize(e, key, p, 'se')} />
+                    </>
                   )}
-                  {calibrate && selectedKey === key && (
-                    <button
-                      className="field-delete"
-                      title="Delete this field"
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeleteField(key)
-                      }}
-                    >
-                      ×
-                    </button>
-                  )}
+
                 </div>
               )
             })}
@@ -1854,28 +2494,42 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
                     />
                   </span>
                   {resizable && (
-                    <span className="ft-num">
-                      W{' '}
-                      <input
-                        type="number"
-                        value={p.width ?? 140}
-                        onChange={(e) =>
-                          editPosition(key, { ...p, width: clamp(Number(e.target.value), 30, 900) })
-                        }
-                      />
-                    </span>
-                  )}
-                  {meta.type === 'image' && (
-                    <span className="ft-num">
-                      H{' '}
-                      <input
-                        type="number"
-                        value={p.height ?? 146}
-                        onChange={(e) =>
-                          editPosition(key, { ...p, height: clamp(Number(e.target.value), 40, 1100) })
-                        }
-                      />
-                    </span>
+                    <>
+                      <span className="ft-num">
+                        W{' '}
+                        <input
+                          type="number"
+                          value={p.width ?? 140}
+                          onChange={(e) =>
+                            editPosition(key, { ...p, width: clamp(Number(e.target.value), 30, 900) })
+                          }
+                        />
+                      </span>
+                      <span className="ft-num">
+                        H{' '}
+                        <input
+                          type="number"
+                          value={p.height ?? (meta.type === 'image' ? 146 : 28)}
+                          onChange={(e) => {
+                            const h = clamp(Number(e.target.value), 14, 1100)
+                            const autoFs = meta.type !== 'image' ? Math.round(clamp(h * 0.65, 9, 120)) : undefined
+                            editPosition(key, { ...p, height: h, ...(autoFs ? { fontSize: autoFs } : {}) })
+                          }}
+                        />
+                      </span>
+                      {meta.type !== 'image' && (
+                        <span className="ft-num" title="Font size in px">
+                          Font{' '}
+                          <input
+                            type="number"
+                            value={p.fontSize ?? (p.height ? Math.round(clamp(p.height * 0.65, 9, 120)) : 13)}
+                            onChange={(e) =>
+                              editPosition(key, { ...p, fontSize: clamp(Number(e.target.value), 8, 120) })
+                            }
+                          />
+                        </span>
+                      )}
+                    </>
                   )}
                   <span className="ft-nudge">
                     <button title="Move up 1px (↑)" onClick={() => {
@@ -2011,6 +2665,130 @@ export default function FormScreen({ formType, formData, onChange, onBack, onSav
               </button>
               <button onClick={() => doPrint(true)}>Print without dialog</button>
               <button onClick={() => setShowPreview(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCalibrationModal && (
+        <div className="preview-overlay" onClick={() => setShowCalibrationModal(false)}>
+          <div className="calibration-modal-window" onClick={(e) => e.stopPropagation()}>
+            <div className="preview-header">
+              <h3>🖨️ Printer Alignment Calibration</h3>
+              <button className="calibration-close-btn" onClick={() => setShowCalibrationModal(false)}>
+                ×
+              </button>
+            </div>
+
+            <div className="calibration-body">
+              <p className="calibration-desc">
+                If your printer shifts text off-target on paper, adjust the position below. This moves <strong>all text fields together</strong> at once without changing individual box layout positions.
+              </p>
+
+              <div className="calibration-grid">
+                <div className="calibration-nudge-pad">
+                  <span className="nudge-label">Directional Nudge</span>
+                  <div className="nudge-buttons">
+                    <button
+                      className="nudge-btn nudge-up"
+                      onClick={() => handleOffsetChange(globalOffsetX, Math.round((globalOffsetY - 0.5) * 10) / 10)}
+                      title="Move all text UP"
+                    >
+                      ▲ Move Up (-0.5mm)
+                    </button>
+                    <div className="nudge-mid-row">
+                      <button
+                        className="nudge-btn nudge-left"
+                        onClick={() => handleOffsetChange(Math.round((globalOffsetX - 0.5) * 10) / 10, globalOffsetY)}
+                        title="Move all text LEFT"
+                      >
+                        ◄ Move Left (-0.5mm)
+                      </button>
+                      <button
+                        className="nudge-btn nudge-reset"
+                        onClick={() => handleOffsetChange(0, 0)}
+                        title="Reset offset to 0"
+                      >
+                        Reset (0)
+                      </button>
+                      <button
+                        className="nudge-btn nudge-right"
+                        onClick={() => handleOffsetChange(Math.round((globalOffsetX + 0.5) * 10) / 10, globalOffsetY)}
+                        title="Move all text RIGHT"
+                      >
+                        Move Right ► (+0.5mm)
+                      </button>
+                    </div>
+                    <button
+                      className="nudge-btn nudge-down"
+                      onClick={() => handleOffsetChange(globalOffsetX, Math.round((globalOffsetY + 0.5) * 10) / 10)}
+                      title="Move all text DOWN"
+                    >
+                      ▼ Move Down (+0.5mm)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="calibration-inputs">
+                  <div className="calibration-field">
+                    <label>
+                      <strong>Vertical Shift (Up / Down)</strong>
+                      <span className="field-hint">Increase (+) if text prints too high on paper.</span>
+                    </label>
+                    <div className="input-row">
+                      <button onClick={() => handleOffsetChange(globalOffsetX, Math.round((globalOffsetY - 1) * 10) / 10)}>-1mm</button>
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={globalOffsetY}
+                        onChange={(e) => handleOffsetChange(globalOffsetX, Number(e.target.value))}
+                      />
+                      <span>mm</span>
+                      <button onClick={() => handleOffsetChange(globalOffsetX, Math.round((globalOffsetY + 1) * 10) / 10)}>+1mm</button>
+                    </div>
+                  </div>
+
+                  <div className="calibration-field">
+                    <label>
+                      <strong>Horizontal Shift (Left / Right)</strong>
+                      <span className="field-hint">Increase (+) if text prints too far left.</span>
+                    </label>
+                    <div className="input-row">
+                      <button onClick={() => handleOffsetChange(Math.round((globalOffsetX - 1) * 10) / 10, globalOffsetY)}>-1mm</button>
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={globalOffsetX}
+                        onChange={(e) => handleOffsetChange(Number(e.target.value), globalOffsetY)}
+                      />
+                      <span>mm</span>
+                      <button onClick={() => handleOffsetChange(Math.round((globalOffsetX + 1) * 10) / 10, globalOffsetY)}>+1mm</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="calibration-presets">
+                <span>Quick Fixes:</span>
+                <button onClick={() => handleOffsetChange(globalOffsetX, 1.0)}>+1mm Down</button>
+                <button onClick={() => handleOffsetChange(globalOffsetX, 2.0)}>+2mm Down</button>
+                <button onClick={() => handleOffsetChange(globalOffsetX, 3.0)}>+3mm Down</button>
+                <button onClick={() => handleOffsetChange(globalOffsetX, -2.0)}>-2mm Up</button>
+                <button onClick={() => handleOffsetChange(0, 0)}>Reset to 0</button>
+              </div>
+
+              <div className="calibration-tip">
+                💡 <strong>Important Print Tip:</strong> In your browser print window, ensure <strong>Margins</strong> is set to <em>None</em> and <strong>Scale</strong> is set to <em>100% (Actual Size)</em>.
+              </div>
+            </div>
+
+            <div className="preview-footer">
+              <button className="primary" onClick={() => setShowCalibrationModal(false)}>
+                Done & Save
+              </button>
+              <button onClick={() => { setShowCalibrationModal(false); handlePrint(); }}>
+                🖨️ Test Print
+              </button>
             </div>
           </div>
         </div>

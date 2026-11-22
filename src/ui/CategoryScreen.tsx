@@ -56,6 +56,19 @@ export default function CategoryScreen({ onSelect, onRecords }: Props) {
         </svg>
       ),
     },
+    {
+      type: 'open_file',
+      title: 'Open File',
+      desc: 'Certificate & Open File Registration Form',
+      icon: (
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#137547" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+          <line x1="9" y1="7" x2="16" y2="7" />
+          <line x1="9" y1="11" x2="16" y2="11" />
+        </svg>
+      ),
+    },
   ]
 
   return (

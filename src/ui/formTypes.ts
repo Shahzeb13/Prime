@@ -1,9 +1,10 @@
-export type FormType = 'application' | 'schedule' | 'booking'
+export type FormType = 'application' | 'schedule' | 'booking' | 'open_file'
 
 export const FORM_TYPE_LABELS: Record<FormType, string> = {
   application: 'Application Form',
   schedule: '04 Year Payment Schedule',
   booking: 'Booking Form',
+  open_file: 'Open File',
 }
 
 export const CATEGORY_OPTIONS = [

@@ -20,11 +20,6 @@
         "left": 17.357843137254903,
         "width": 598
       },
-      "applicant_cnic_nicop": {
-        "top": 13,
-        "left": 37,
-        "width": 200
-      },
       "applicant_contact_no": {
         "top": 29.435185185185176,
         "left": 15.465686274509805
@@ -46,30 +41,6 @@
       "nok_cnic_nicop": {
         "top": 26.15123456790123,
         "left": 17.60294117647059
-      },
-      "category:05 Marla Residential": {
-        "top": 10,
-        "left": 6
-      },
-      "category:7.5 Marla Residential": {
-        "top": 10,
-        "left": 54
-      },
-      "category:10 Marla Residential": {
-        "top": 16,
-        "left": 6
-      },
-      "category:13 Marla Residential": {
-        "top": 16,
-        "left": 54
-      },
-      "category:1 Kanal Residential": {
-        "top": 22,
-        "left": 6
-      },
-      "category:2 Kanal Farm House": {
-        "top": 22,
-        "left": 54
       },
       "block_no": {
         "top": 50.2253086419753,
@@ -96,11 +67,6 @@
         "left": 66.32352941176471,
         "width": 158
       },
-      "applicant_signature": {
-        "top": 41,
-        "left": 4,
-        "width": 200
-      },
       "signature_tr_branch": {
         "top": 41,
         "left": 37,
@@ -117,67 +83,67 @@
         "width": 200
       },
       "custom_c": {
-        "top": 39.691358024691375,
+        "top": 39.6,
         "left": 25.151960784313722,
         "width": 30
       },
       "custom_i": {
-        "top": 39.61467978395063,
+        "top": 39.6,
         "left": 28.921568627450984,
         "width": 30
       },
       "custom_j": {
-        "top": 39.67616705246916,
+        "top": 39.6,
         "left": 32.720588235294116,
         "width": 30
       },
       "custom_k": {
-        "top": 39.599006558641996,
+        "top": 39.6,
         "left": 36.39705882352941,
         "width": 30
       },
       "custom_l": {
-        "top": 39.599006558641996,
+        "top": 39.6,
         "left": 40.196078431372555,
         "width": 30
       },
       "custom_m": {
-        "top": 39.599006558642,
+        "top": 39.6,
         "left": 46.69117647058823,
         "width": 30
       },
       "custom_n": {
-        "top": 39.599006558641996,
+        "top": 39.6,
         "left": 50.24509803921569,
         "width": 30
       },
       "custom_o": {
-        "top": 39.599006558642,
+        "top": 39.6,
         "left": 53.92156862745098,
         "width": 30
       },
       "custom_p": {
-        "top": 39.599006558642,
+        "top": 39.6,
         "left": 57.59803921568627,
         "width": 30
       },
       "custom_q": {
-        "top": 39.67616705246915,
+        "top": 39.6,
         "left": 61.15196078431372,
         "width": 30
       },
       "custom_r": {
-        "top": 39.67616705246916,
+        "top": 39.6,
         "left": 64.82843137254902,
         "width": 30
       },
       "custom_s": {
-        "top": 39.676167052469154,
+        "top": 39.6,
         "left": 68.62745098039217,
         "width": 30
       },
       "custom_t": {
-        "top": 39.75332754629632,
+        "top": 39.6,
         "left": 75.49019607843138,
         "width": 30
       },
@@ -337,7 +303,7 @@
   "customFields": [
     {
       "id": "custom_5",
-      "label": "Kanal Farm House",
+      "label": "",
       "formType": "booking",
       "pageIndex": 0,
       "type": "checkbox",
@@ -449,7 +415,7 @@
     },
     {
       "id": "custom_u",
-      "label": "MARLA R",
+      "label": "",
       "formType": "booking",
       "pageIndex": 0,
       "type": "checkbox",
@@ -457,7 +423,7 @@
     },
     {
       "id": "custom_w",
-      "label": "MARLA R",
+      "label": "",
       "formType": "booking",
       "pageIndex": 0,
       "type": "checkbox",
@@ -465,7 +431,7 @@
     },
     {
       "id": "custom_x",
-      "label": "MARLA R",
+      "label": "",
       "formType": "booking",
       "pageIndex": 0,
       "type": "checkbox",
@@ -569,7 +535,7 @@
     },
     {
       "id": "custom_1a",
-      "label": "MARLA R",
+      "label": "",
       "formType": "booking",
       "pageIndex": 0,
       "type": "checkbox",
@@ -577,7 +543,7 @@
     },
     {
       "id": "custom_1b",
-      "label": "MARLA R",
+      "label": "",
       "formType": "booking",
       "pageIndex": 0,
       "type": "checkbox",
@@ -657,13 +623,7 @@
     }
   ],
   "hiddenFields": [
-    "applicant_signature",
-    "signature_tr_branch",
-    "signature_president",
-    "signature_general_secretary",
-    "category",
     "applicant_signature_thumb",
-    "applicant_cnic_nicop",
     "declaration_date"
   ]
 }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { FORM_TYPE_LABELS } from './formTypes'
 import { RECORD_GROUPS } from './recordGroups'
+import RecordPrintPreview from './RecordPrintPreview'
 import {
   formatDate,
   formatValue,
@@ -16,6 +17,7 @@ interface Props {
   record: SavedRecord
   onBack: () => void
   onDelete: (id: number) => Promise<void> | void
+  onEdit?: (record: SavedRecord) => void
 }
 
 interface FieldGroup {
@@ -33,6 +35,25 @@ function BackIcon() {
   )
 }
 
+function EditIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  )
+}
+
+function PrinterIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 6 2 18 2 18 9" />
+      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+      <rect x="6" y="14" width="12" height="8" />
+    </svg>
+  )
+}
+
 function TrashIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -43,8 +64,10 @@ function TrashIcon() {
     </svg>
   )
 }
-export default function RecordDetailsScreen({ record, onBack, onDelete }: Props) {
+
+export default function RecordDetailsScreen({ record, onBack, onDelete, onEdit }: Props) {
   const [lightbox, setLightbox] = useState<string | null>(null)
+  const [showPrint, setShowPrint] = useState(false)
 
   const groups = useMemo<FieldGroup[]>(() => {
     const defs = RECORD_GROUPS[record.formType] ?? []
@@ -101,10 +124,26 @@ export default function RecordDetailsScreen({ record, onBack, onDelete }: Props)
           <span>Records</span>
         </button>
         <h2>Record Details</h2>
-        <button className="danger details-delete-btn" onClick={() => onDelete(record.id)}>
-          <TrashIcon />
-          <span>Delete</span>
-        </button>
+        <div className="details-toolbar-actions">
+          {onEdit && (
+            <button
+              className="secondary details-edit-btn"
+              onClick={() => onEdit(record)}
+              title="Edit record details and application form"
+            >
+              <EditIcon />
+              <span>Edit Record</span>
+            </button>
+          )}
+          <button className="primary details-print-btn" onClick={() => setShowPrint(true)}>
+            <PrinterIcon />
+            <span>Print</span>
+          </button>
+          <button className="danger details-delete-btn" onClick={() => onDelete(record.id)}>
+            <TrashIcon />
+            <span>Delete</span>
+          </button>
+        </div>
       </div>
 
       <div className="record-detail-hero">
@@ -213,6 +252,11 @@ export default function RecordDetailsScreen({ record, onBack, onDelete }: Props)
           </div>
         </div>
       )}
+
+      {showPrint && (
+        <RecordPrintPreview record={record} onClose={() => setShowPrint(false)} />
+      )}
     </div>
   )
 }
+

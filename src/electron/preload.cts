@@ -28,6 +28,8 @@ const api = {
     ipcRenderer.invoke('save-hidden-fields', fields),
   saveSubmission: (formType: string, payload: unknown): Promise<number | null> =>
     ipcRenderer.invoke('save-submission', formType, payload),
+  updateSubmission: (id: number, formType: string, payload: unknown): Promise<boolean> =>
+    ipcRenderer.invoke('update-submission', id, formType, payload),
   loadSubmissions: (formType: string): Promise<unknown[]> =>
     ipcRenderer.invoke('load-submissions', formType),
   deleteSubmission: (id: number): Promise<boolean> =>

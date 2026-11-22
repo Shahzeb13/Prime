@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FORM_TYPE_LABELS, type FormType } from './formTypes'
 import RecordDetailsScreen from './RecordDetailsScreen'
+import RecordPrintPreview from './RecordPrintPreview'
 import {
   formatDate,
   getApplicantName,
@@ -13,6 +14,16 @@ function EyeIcon() {
     <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
       <circle cx="12" cy="12" r="3" />
+    </svg>
+  )
+}
+
+function PrinterIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 6 2 18 2 18 9" />
+      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+      <rect x="6" y="14" width="12" height="8" />
     </svg>
   )
 }
@@ -37,11 +48,26 @@ function SearchIcon() {
   )
 }
 
-export default function RecordsScreen({ onBack }: { onBack: () => void }) {
+function EditIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  )
+}
+
+interface RecordsScreenProps {
+  onBack: () => void
+  onEditRecord: (record: SavedRecord) => void
+}
+
+export default function RecordsScreen({ onBack, onEditRecord }: RecordsScreenProps) {
   const [selectedFormFilter, setSelectedFormFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [records, setRecords] = useState<SavedRecord[]>([])
   const [selectedRecord, setSelectedRecord] = useState<SavedRecord | null>(null)
+  const [printRecord, setPrintRecord] = useState<SavedRecord | null>(null)
 
   const loadRecords = useCallback(() => {
     if (!window.electronAPI?.loadSubmissions) return
@@ -101,6 +127,7 @@ export default function RecordsScreen({ onBack }: { onBack: () => void }) {
         record={selectedRecord}
         onBack={() => setSelectedRecord(null)}
         onDelete={handleDelete}
+        onEdit={onEditRecord}
       />
     )
   }
@@ -203,6 +230,28 @@ export default function RecordsScreen({ onBack }: { onBack: () => void }) {
                     <span>Details</span>
                   </button>
                   <button
+                    className="rec-edit-btn"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onEditRecord(r)
+                    }}
+                    title="Edit record details and form layout"
+                  >
+                    <EditIcon />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    className="rec-print-btn"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setPrintRecord(r)
+                    }}
+                    title="Print this record"
+                  >
+                    <PrinterIcon />
+                    <span>Print</span>
+                  </button>
+                  <button
                     className="danger rec-del-btn"
                     onClick={(e) => {
                       e.stopPropagation()
@@ -227,6 +276,14 @@ export default function RecordsScreen({ onBack }: { onBack: () => void }) {
           </tbody>
         </table>
       </div>
+
+      {printRecord && (
+        <RecordPrintPreview
+          record={printRecord}
+          onClose={() => setPrintRecord(null)}
+        />
+      )}
     </div>
   )
 }
+

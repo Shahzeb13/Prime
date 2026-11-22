@@ -8,6 +8,7 @@ export interface FieldMeta {
   type: FieldType
   width?: string
   options?: string[]
+  showLabel?: boolean
 }
 
 const t = (id: string, label: string, width?: string): FieldMeta => ({
@@ -15,6 +16,14 @@ const t = (id: string, label: string, width?: string): FieldMeta => ({
   label,
   type: 'text',
   width,
+})
+
+const tl = (id: string, label: string, width?: string): FieldMeta => ({
+  id,
+  label,
+  type: 'text',
+  width,
+  showLabel: true,
 })
 
 const d = (id: string, label: string, width?: string): FieldMeta => ({
@@ -25,8 +34,6 @@ const d = (id: string, label: string, width?: string): FieldMeta => ({
 })
 
 const cb = (id: string, label: string): FieldMeta => ({ id, label, type: 'checkbox' })
-
-const cat = (label: string): FieldMeta => ({ id: 'category', label, type: 'category' })
 
 const img = (id: string, label: string): FieldMeta => ({ id, label, type: 'image' })
 
@@ -52,11 +59,10 @@ export const FORM_FIELDS: Record<FormType, FieldMeta[][]> = {
       t('nok_so_do_wo', 'S/O, D/O, W/O', '220px'),
       t('nok_cnic', 'CNIC NO', '200px'),
       t('nok_relation', 'RELATION', '160px'),
-      t('office_sign', 'SIGN', '120px'),
       t('project_name', 'PROJECT NAME', '220px'),
-      cb('installment', 'INSTALLMENT'),
-      cb('full_payment', 'FULL PAYMENT'),
-      cb('others', 'OTHERS'),
+      cb('installment', ''),
+      cb('full_payment', ''),
+      cb('others', ''),
       t('plot_shop_apartment_office', 'PLOT/SHOP/APARTMENT/OFFICE', '200px'),
       t('office_block', 'BLOCK', '120px'),
       t('remarks', 'REMARKS', '260px'),
@@ -66,12 +72,10 @@ export const FORM_FIELDS: Record<FormType, FieldMeta[][]> = {
   ],
   schedule: [
     [
-      cat('Please Tick Particular Category'),
       t('block_no', 'Block No', '90px'),
       t('street_no', 'Street No', '90px'),
       t('plot_no', 'Plot No', '90px'),
       t('plot_size', 'Plot Size', '110px'),
-      t('applicant_signature', 'Signature of Applicant', '200px'),
     ],
   ],
   booking: [
@@ -80,22 +84,16 @@ export const FORM_FIELDS: Record<FormType, FieldMeta[][]> = {
       d('date', 'Date', '110px'),
       t('applicant_name', 'Name of Applicant', '220px'),
       t('applicant_so_do_wo', 'S/O, D/O, W/O', '220px'),
-      t('applicant_cnic_nicop', 'CNIC/ NICOP#', '200px'),
       t('applicant_contact_no', 'Contact No', '160px'),
       t('applicant_email', 'Email Address', '200px'),
       t('applicant_mailing_address', 'Mailing Address', '220px'),
       t('nok_name', 'Name of NOK', '220px'),
       t('nok_cnic_nicop', 'CNIC or NICOP of NOK', '200px'),
-      cat('Please Tick Particular Category'),
       t('block_no', 'Block No', '90px'),
       t('street_no', 'Street No', '90px'),
       t('plot_no', 'Plot No', '90px'),
       t('plot_size', 'Plot Size', '110px'),
       t('down_payment', 'Down Payment', '140px'),
-      t('applicant_signature', 'Signature of Applicant', '200px'),
-      t('signature_tr_branch', 'PVCHS Stamp & Signature (T&R Branch)', '200px'),
-      t('signature_general_secretary', 'PVCHS Stamp & Signature (General Secretary)', '200px'),
-      t('signature_president', 'PVCHS Stamp & Signature (President)', '200px'),
     ],
     [
       t('amount_rs', 'Amount Rs', '140px'),
@@ -103,6 +101,24 @@ export const FORM_FIELDS: Record<FormType, FieldMeta[][]> = {
       t('bank_branch_deposited', 'Bank Name & Branch Code', '220px'),
       d('declaration_date', 'Date', '110px'),
       t('applicant_signature_thumb', 'Signature & thumb of Applicant', '220px'),
+    ],
+  ],
+  open_file: [
+    [
+      t('name', 'NAME', '280px'),
+      t('s_d_w_o', 'S/D,O/O,W/O', '280px'),
+      t('cnic', 'CNIC', '220px'),
+      d('date', 'DATE', '140px'),
+      t('address', 'Mailing Address', '350px'),
+      tl('security_no', 'Security No', '240px'),
+      tl('plot_size', 'Plot Size', '240px'),
+      tl('block_no', 'Block No', '240px'),
+      tl('plot_type', 'Plot Type', '240px'),
+      tl('street_no', 'Street No', '240px'),
+      tl('plot_no', 'Plot No', '240px'),
+      tl('membership_no', 'Member Ship #', '300px'),
+      t('paid_amount', 'Paid Amount', '180px'),
+      img('qr_code', 'QR Code'),
     ],
   ],
 }

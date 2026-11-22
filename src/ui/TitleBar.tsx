@@ -1,8 +1,19 @@
+import { useEffect } from 'react'
 import { isDev } from './isDev'
 
 export default function TitleBar() {
+  const active = !isDev()
+
+  useEffect(() => {
+    if (active) {
+      document.documentElement.style.setProperty('--title-bar-height', '32px')
+    } else {
+      document.documentElement.style.setProperty('--title-bar-height', '0px')
+    }
+  }, [active])
+
   // Custom title bar appears ONLY in production build mode, NOT in dev mode!
-  if (isDev()) {
+  if (!active) {
     return null
   }
 
