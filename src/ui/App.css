@@ -220,10 +220,11 @@
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   position: sticky;
-  top: 6px;
-  z-index: 5;
+  top: var(--title-bar-height, 0px);
+  z-index: 1000;
+  -webkit-app-region: no-drag;
 }
 
 .ribbon-toolbar {
@@ -357,6 +358,7 @@
   font-size: 12px;
   padding: 2px 6px;
   color: var(--text);
+  -webkit-app-region: no-drag;
 }
 
 .form-toolbar .back-btn:hover {
@@ -914,6 +916,14 @@
   min-width: 0;
 }
 
+.field-control input[type='text']:hover,
+.field-control input[type='date']:hover,
+.field-control input[type='number']:hover {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--text-h);
+  caret-color: var(--text-h);
+}
+
 .field-control input[type='checkbox'],
 .field-control input[type='radio'] {
   width: 14px;
@@ -1195,7 +1205,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 10000;
   padding: 20px;
 }
 

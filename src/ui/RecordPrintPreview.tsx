@@ -250,7 +250,11 @@ export default function RecordPrintPreview({ record, onClose }: Props) {
         </span>
       ) : null
     }
-    const s = typeof v === 'string' ? v : ''
+    let s = typeof v === 'string' ? v : ''
+    if (meta.type === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      const [yyyy, mm, dd] = s.split('-')
+      s = `${dd}/${mm}/${yyyy}`
+    }
     if (!s && !meta.showLabel) return null
     if (meta.showLabel) {
       return (

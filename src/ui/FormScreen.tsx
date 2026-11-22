@@ -1107,12 +1107,56 @@ export default function FormScreen({
     }
 
     if (drag.mode === 'marquee') {
-      setMarqueeBox({
-        startX: drag.startX,
-        startY: drag.startY,
-        currentX: e.clientX,
-        currentY: e.clientY,
-      })
+      if (e.clientY > window.innerHeight - 60) {
+        window.scrollBy({ top: 15, behavior: 'auto' })
+      } else if (e.clientY < 60) {
+        window.scrollBy({ top: -15, behavior: 'auto' })
+      }
+
+      const pRect = pageRef.current?.getBoundingClientRect()
+      if (pRect) {
+        const pageX = e.clientX - pRect.left
+        const pageY = e.clientY - pRect.top
+
+        setMarqueeBox({
+          startX: drag.startX,
+          startY: drag.startY,
+          currentX: pageX,
+          currentY: pageY,
+        })
+
+        const boxMinX = Math.min(drag.startX, pageX)
+        const boxMaxX = Math.max(drag.startX, pageX)
+        const boxMinY = Math.min(drag.startY, pageY)
+        const boxMaxY = Math.max(drag.startY, pageY)
+
+        const foundKeys: string[] = []
+        const pagePos = (positionsRef.current ?? defaultPositions)[formType]?.[pageIndex] ?? {}
+        for (const key of pageKeys) {
+          const p = pagePos[key] ?? { top: 5, left: 5 }
+          const meta = metaForKey(pageMetaList, key)
+          const fWidth = p.width ?? (meta.type === 'image' ? 110 : 140)
+          const fHeight = p.height ?? (meta.type === 'image' ? 146 : 24)
+
+          const fLeftPx = (p.left / 100) * pRect.width
+          const fTopPx = (p.top / 100) * pRect.height
+          const fRightPx = fLeftPx + fWidth
+          const fBottomPx = fTopPx + fHeight
+
+          if (
+            fRightPx >= boxMinX &&
+            fLeftPx <= boxMaxX &&
+            fBottomPx >= boxMinY &&
+            fTopPx <= boxMaxY
+          ) {
+            foundKeys.push(key)
+          }
+        }
+        if (foundKeys.length > 0) {
+          setSelectedKeys(foundKeys)
+          setSelectedKey(foundKeys[0])
+        }
+      }
       return
     }
 
@@ -1199,8 +1243,8 @@ export default function FormScreen({
             const fWidth = p.width ?? (meta.type === 'image' ? 110 : 140)
             const fHeight = p.height ?? (meta.type === 'image' ? 146 : 24)
 
-            const fLeftPx = pRect.left + (p.left / 100) * pRect.width
-            const fTopPx = pRect.top + (p.top / 100) * pRect.height
+            const fLeftPx = (p.left / 100) * pRect.width
+            const fTopPx = (p.top / 100) * pRect.height
             const fRightPx = fLeftPx + fWidth
             const fBottomPx = fTopPx + fHeight
 
@@ -1269,17 +1313,21 @@ export default function FormScreen({
     if (!e.shiftKey && !e.ctrlKey) {
       selectKey(null)
     }
+    const pRect = pageRef.current?.getBoundingClientRect()
+    const pageX = pRect ? e.clientX - pRect.left : e.clientX
+    const pageY = pRect ? e.clientY - pRect.top : e.clientY
+
     setMarqueeBox({
-      startX: e.clientX,
-      startY: e.clientY,
-      currentX: e.clientX,
-      currentY: e.clientY,
+      startX: pageX,
+      startY: pageY,
+      currentX: pageX,
+      currentY: pageY,
     })
     dragRef.current = {
       fieldKey: '',
       mode: 'marquee',
-      startX: e.clientX,
-      startY: e.clientY,
+      startX: pageX,
+      startY: pageY,
       origTop: 0,
       origLeft: 0,
       origWidth: 0,
@@ -1595,7 +1643,11 @@ export default function FormScreen({
         </span>
       ) : null
     }
-    const s = typeof v === 'string' ? v : ''
+    let s = typeof v === 'string' ? v : ''
+    if (meta.type === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      const [yyyy, mm, dd] = s.split('-')
+      s = `${dd}/${mm}/${yyyy}`
+    }
     if (!s && !meta.showLabel) return null
     if (meta.showLabel) {
       return (
@@ -1681,7 +1733,7 @@ export default function FormScreen({
     const inputs = rawInputs.sort((a, b) => {
       const rectA = a.getBoundingClientRect()
       const rectB = b.getBoundingClientRect()
-      if (Math.abs(rectA.top - rectB.top) < 12) {
+      if (Math.abs(rectA.top - rectB.top) < 20) {
         return rectA.left - rectB.left
       }
       return rectA.top - rectB.top
@@ -1707,7 +1759,7 @@ export default function FormScreen({
     const inputs = rawInputs.sort((a, b) => {
       const rectA = a.getBoundingClientRect()
       const rectB = b.getBoundingClientRect()
-      if (Math.abs(rectA.top - rectB.top) < 12) {
+      if (Math.abs(rectA.top - rectB.top) < 20) {
         return rectA.left - rectB.left
       }
       return rectA.top - rectB.top
@@ -1724,13 +1776,15 @@ export default function FormScreen({
   }
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, key?: string) => {
+    const input = e.currentTarget
+    const isSmallBox = input.offsetWidth > 0 && input.offsetWidth <= 40
+
     if (e.key === 'Enter') {
       e.preventDefault()
-      focusNextInput(e.currentTarget)
+      focusNextInput(input)
     } else if (e.key === 'Backspace') {
-      const input = e.currentTarget
-      const isSmallBox = input.offsetWidth <= 40
-      if (input.value === '' || isSmallBox) {
+      if (isSmallBox) {
+        e.preventDefault()
         if (key && input.value !== '') {
           onChange(key, '')
         }
@@ -1761,7 +1815,7 @@ export default function FormScreen({
             name={`${group}-${formType}-${pageIndex}`}
             checked={selected === opt}
             onChange={() => onChange(group, opt)}
-            onKeyDown={(e) => handleInputKeyDown(e, group)}
+            onKeyDown={handleInputKeyDown}
           />
           <span className="field-option-label">{opt}</span>
         </label>
@@ -1814,7 +1868,7 @@ export default function FormScreen({
             type="checkbox"
             checked={data[key] === true}
             onChange={(e) => onChange(key, e.target.checked)}
-            onKeyDown={(e) => handleInputKeyDown(e, key)}
+            onKeyDown={handleInputKeyDown}
           />
         </label>
       )
@@ -2191,20 +2245,19 @@ export default function FormScreen({
             openContextMenu(e, null)
           }}
         >
-            {marqueeBox && pageRef.current && (() => {
-              const rect = pageRef.current.getBoundingClientRect()
-              const left = Math.min(marqueeBox.startX, marqueeBox.currentX) - rect.left
-              const top = Math.min(marqueeBox.startY, marqueeBox.currentY) - rect.top
-              const width = Math.abs(marqueeBox.currentX - marqueeBox.startX)
-              const height = Math.abs(marqueeBox.currentY - marqueeBox.startY)
+            {marqueeBox && (() => {
+              const boxMinX = Math.min(marqueeBox.startX, marqueeBox.currentX)
+              const boxMaxX = Math.max(marqueeBox.startX, marqueeBox.currentX)
+              const boxMinY = Math.min(marqueeBox.startY, marqueeBox.currentY)
+              const boxMaxY = Math.max(marqueeBox.startY, marqueeBox.currentY)
               return (
                 <div
                   className="selection-marquee"
                   style={{
-                    left: `${left}px`,
-                    top: `${top}px`,
-                    width: `${width}px`,
-                    height: `${height}px`,
+                    left: `${boxMinX}px`,
+                    top: `${boxMinY}px`,
+                    width: `${boxMaxX - boxMinX}px`,
+                    height: `${boxMaxY - boxMinY}px`,
                   }}
                 />
               )
@@ -2244,7 +2297,9 @@ export default function FormScreen({
                   }}
                   onMouseDown={(e) => startDrag(e, key, p)}
                   onClick={(e) => e.stopPropagation()}
-                  onContextMenu={(e) => openContextMenu(e, key)}
+                  onContextMenu={(e) => {
+                    if (isDesignMode) openContextMenu(e, key)
+                  }}
                 >
                   {isDesignMode && showDemoScale && (
                     <div className="field-4axis-scale">
